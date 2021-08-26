@@ -84,18 +84,18 @@ spec:
             }
         }
 
-        stage('deploy to rdpc-collab-dev') {
-            when {
-                branch "develop"
-            }
-            steps {
-                build(job: "/provision/update-app-version", parameters: [
-                    [$class: 'StringParameterValue', name: 'RDPC_ENV', value: 'dev' ],
-                    [$class: 'StringParameterValue', name: 'TARGET_RELEASE', value: 'raccoon'],
-                    [$class: 'StringParameterValue', name: 'NEW_APP_VERSION', value: "${version}-${commit}" ]
-                ])
-            }
-        }
+//         stage('deploy to rdpc-collab-dev') {
+//             when {
+//                 branch "develop"
+//             }
+//             steps {
+//                 build(job: "/provision/update-app-version", parameters: [
+//                     [$class: 'StringParameterValue', name: 'RDPC_ENV', value: 'dev' ],
+//                     [$class: 'StringParameterValue', name: 'TARGET_RELEASE', value: 'raccoon'],
+//                     [$class: 'StringParameterValue', name: 'NEW_APP_VERSION', value: "${version}-${commit}" ]
+//                 ])
+//             }
+//         }
 
         stage('Release & Tag') {
             when {
@@ -120,17 +120,17 @@ spec:
                 }
             }
         }
-        stage('deploy to rdpc-collab-qa') {
-            when {
-                branch "master"
-            }
-            steps {
-                build(job: "/provision/update-app-version", parameters: [
-                    [$class: 'StringParameterValue', name: 'RDPC_ENV', value: 'qa' ],
-                    [$class: 'StringParameterValue', name: 'TARGET_RELEASE', value: 'raccoon'],
-                    [$class: 'StringParameterValue', name: 'NEW_APP_VERSION', value: "${version}" ]
-                ])
-            }
-        }
+//         stage('deploy to rdpc-collab-qa') {
+//             when {
+//                 branch "master"
+//             }
+//             steps {
+//                 build(job: "/provision/update-app-version", parameters: [
+//                     [$class: 'StringParameterValue', name: 'RDPC_ENV', value: 'qa' ],
+//                     [$class: 'StringParameterValue', name: 'TARGET_RELEASE', value: 'raccoon'],
+//                     [$class: 'StringParameterValue', name: 'NEW_APP_VERSION', value: "${version}" ]
+//                 ])
+//             }
+//         }
     }
 }
