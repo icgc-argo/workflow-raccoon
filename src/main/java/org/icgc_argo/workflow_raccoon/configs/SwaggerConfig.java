@@ -14,34 +14,33 @@ import springfox.documentation.swagger2.annotations.EnableSwagger2;
 @EnableSwagger2
 @Configuration
 public class SwaggerConfig {
-    public static final String RUN_TAG_NAME = "Run";
+  public static final String RUN_TAG_NAME = "Run";
 
-    @Value("${spring.application.name}")
-    private String appName;
+  @Value("${spring.application.name}")
+  private String appName;
 
-    @Value("${spring.application.description}")
-    private String appDescription;
+  @Value("${spring.application.description}")
+  private String appDescription;
 
-    @Value("${spring.application.version}")
-    private String appVersion;
+  @Value("${spring.application.version}")
+  private String appVersion;
 
-    ApiInfo apiInfo() {
-        return new ApiInfoBuilder()
-                .title(appName)
-                .description(appDescription)
-                .license("Apache 2.0")
-                .version(appVersion)
-                .build();
-    }
+  ApiInfo apiInfo() {
+    return new ApiInfoBuilder()
+        .title(appName)
+        .description(appDescription)
+        .license("Apache 2.0")
+        .version(appVersion)
+        .build();
+  }
 
-    @Bean
-    public Docket docket() {
-        return new Docket(DocumentationType.SWAGGER_2)
-                .select()
-                .apis(RequestHandlerSelectors.basePackage("org.icgc_argo.workflow_raccoon"))
-                .build()
-                .tags(new Tag(RUN_TAG_NAME, "Run Garbage Collection"))
-                .apiInfo(apiInfo());
-    }
-
+  @Bean
+  public Docket docket() {
+    return new Docket(DocumentationType.SWAGGER_2)
+        .select()
+        .apis(RequestHandlerSelectors.basePackage("org.icgc_argo.workflow_raccoon"))
+        .build()
+        .tags(new Tag(RUN_TAG_NAME, "Run Garbage Collection"))
+        .apiInfo(apiInfo());
+  }
 }

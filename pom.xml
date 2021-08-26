@@ -12,7 +12,7 @@
     <artifactId>workflow-raccoon</artifactId>
     <version>0.0.1-SNAPSHOT</version>
     <name>Workflow Raccoon</name>
-    <description>Service used to cleanup stale workflows</description>
+    <description>Service responsible for emitting events to workflow-relay to set stale workflows to SYSTEM_ERROR state.</description>
 
     <properties>
         <java.version>11</java.version>
