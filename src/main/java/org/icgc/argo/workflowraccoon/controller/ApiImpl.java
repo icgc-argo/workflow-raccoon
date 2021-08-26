@@ -1,7 +1,7 @@
-package org.icgc.argo.workflowraccoon.controllers;
+package org.icgc.argo.workflowraccoon.controller;
 
-import org.icgc.argo.workflowraccoon.models.ApiResponse;
-import org.icgc.argo.workflowraccoon.models.DryRunResponse;
+import org.icgc.argo.workflowraccoon.model.ApiResponse;
+import org.icgc.argo.workflowraccoon.model.DryRunResponse;
 import org.springframework.web.bind.annotation.RestController;
 import reactor.core.publisher.Mono;
 

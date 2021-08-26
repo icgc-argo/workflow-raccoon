@@ -1,4 +1,4 @@
-package org.icgc.argo.workflowraccoon.models;
+package org.icgc.argo.workflowraccoon.model;
 
 import lombok.Builder;
 import lombok.Value;
