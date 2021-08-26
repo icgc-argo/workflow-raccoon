@@ -1,13 +1,13 @@
-package org.icgc.argo.workflowraccoon.controller;
+package org.icgc_argo.workflow_raccoon.controller;
 
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
-import org.icgc.argo.workflowraccoon.model.ApiResponse;
-import org.icgc.argo.workflowraccoon.model.DryRunResponse;
+import org.icgc_argo.workflow_raccoon.model.ApiResponse;
+import org.icgc_argo.workflow_raccoon.model.DryRunResponse;
 import org.springframework.web.bind.annotation.PostMapping;
 import reactor.core.publisher.Mono;
 
-import static org.icgc.argo.workflowraccoon.configs.SwaggerConfig.RUN_TAG_NAME;
+import static org.icgc_argo.workflow_raccoon.configs.SwaggerConfig.RUN_TAG_NAME;
 import static org.springframework.http.MediaType.APPLICATION_JSON_VALUE;
 
 @Api(tags = RUN_TAG_NAME)

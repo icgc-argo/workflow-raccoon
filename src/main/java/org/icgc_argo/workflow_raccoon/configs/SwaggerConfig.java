@@ -1,4 +1,4 @@
-package org.icgc.argo.workflowraccoon.configs;
+package org.icgc_argo.workflow_raccoon.configs;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
@@ -38,7 +38,7 @@ public class SwaggerConfig {
     public Docket docket() {
         return new Docket(DocumentationType.SWAGGER_2)
                 .select()
-                .apis(RequestHandlerSelectors.basePackage("org.icgc.argo.workflowraccoon"))
+                .apis(RequestHandlerSelectors.basePackage("org.icgc_argo.workflow_raccoon"))
                 .build()
                 .tags(new Tag(RUN_TAG_NAME, "Run Garbage Collection"))
                 .apiInfo(apiInfo());
