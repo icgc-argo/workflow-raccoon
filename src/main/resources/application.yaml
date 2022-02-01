@@ -1,5 +1,20 @@
 spring:
   application:
-    name: @project.name@
-    version: @project.version@
-    description: @project.description@
+    name: "@project.name@"
+    version: "@project.version@"
+    description: "@project.description@"
+
+server.port: 8090
+
+k8s:
+  appNamespace: "default" # Namespace where app will be running
+  runsNamespace: "default" # Namespace where worklow resources will be
+  serviceAccount: "default"
+  masterUrl: "https://192.168.99.100:8443"
+  trustCertificate: false
+
+rdpc:
+  url: https://api.rdpc-dev.cancercollaboratory.org/graphql
+  clientId: wfg
+  clientSecret: workflowgraph
+  tokenUrl: https://ego.dev.argo.cancercollaboratory.org/api/oauth/token

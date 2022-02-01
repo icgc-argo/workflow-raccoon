@@ -14,30 +14,32 @@
  * OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER
  * IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
  * ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- *
  */
 
-package org.icgc_argo.workflow_raccoon.controller;
+package org.icgc_argo.workflow_raccoon.service;
 
 import lombok.RequiredArgsConstructor;
-import org.icgc_argo.workflow_raccoon.model.ApiResponse;
 import org.icgc_argo.workflow_raccoon.model.DryRunResponse;
-import org.icgc_argo.workflow_raccoon.service.RaccoonService;
-import org.springframework.web.bind.annotation.RestController;
+import org.icgc_argo.workflow_raccoon.service.infra.InfraService;
+import org.icgc_argo.workflow_raccoon.service.infra.KubernetesService;
+import org.icgc_argo.workflow_raccoon.service.rdpc.RdpcService;
+import org.springframework.stereotype.Service;
 import reactor.core.publisher.Mono;
 
-@RestController
+@Service
 @RequiredArgsConstructor
-public class ApiImpl implements ApiDef {
-  private final RaccoonService raccoonService;
+public class RaccoonService {
+    private final InfraService infraService;
+    private final RdpcService rdpcService;
 
-  @Override
-  public Mono<ApiResponse> run() {
-    return Mono.just(ApiResponse.builder().code(200).message("I don't do anything yet.").build());
-  }
-
-  @Override
-  public Mono<DryRunResponse> dryRun() {
-    return raccoonService.dryRun();
-  }
+    public Mono<DryRunResponse> dryRun() {
+      return this.rdpcService.getRunningWorkflows()
+              .filterWhen(infraService::isWorkflowNotRunning)
+              .collectList()
+              .map(runs -> DryRunResponse.builder()
+                      .numJobsStuck(runs.size())
+                      .numPodsToCleanup(0)
+                      .numSecretsToCleanup(0)
+                      .build());
+    }
 }

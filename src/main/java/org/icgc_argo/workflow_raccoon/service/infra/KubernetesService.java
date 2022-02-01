@@ -14,30 +14,43 @@
  * OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER
  * IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
  * ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- *
  */
 
-package org.icgc_argo.workflow_raccoon.controller;
+package org.icgc_argo.workflow_raccoon.service.infra;
 
 import lombok.RequiredArgsConstructor;
-import org.icgc_argo.workflow_raccoon.model.ApiResponse;
-import org.icgc_argo.workflow_raccoon.model.DryRunResponse;
-import org.icgc_argo.workflow_raccoon.service.RaccoonService;
-import org.springframework.web.bind.annotation.RestController;
+import lombok.extern.slf4j.Slf4j;
+import org.icgc_argo.workflow_raccoon.properties.KubernetesProperties;
+import org.springframework.stereotype.Service;
 import reactor.core.publisher.Mono;
 
-@RestController
+import java.util.Map;
+
+@Slf4j
+@Service
 @RequiredArgsConstructor
-public class ApiImpl implements ApiDef {
-  private final RaccoonService raccoonService;
+public class KubernetesService implements InfraService {
+    private final KubernetesProperties properties;
 
-  @Override
-  public Mono<ApiResponse> run() {
-    return Mono.just(ApiResponse.builder().code(200).message("I don't do anything yet.").build());
-  }
+    Map<String, Boolean> lookUp = Map.of("wes-123", false, "wes-456", true);
 
-  @Override
-  public Mono<DryRunResponse> dryRun() {
-    return raccoonService.dryRun();
-  }
+    public Mono<Boolean> isWorkflowNotRunning(String id) {
+      return Mono.just(lookUp.getOrDefault(id, false));
+    }
+
+//    private DefaultKubernetesClient kubernetesClient() {
+//        log.info("Init k8s client");
+//        try {
+//            val config =
+//                    new ConfigBuilder()
+//                            .withMasterUrl(properties.getMasterUrl())
+//                            .withNamespace(properties.getRunsNamespace())
+//                            .withTrustCerts(properties.getTrustCertificate())
+//                            .build();
+//            return new DefaultKubernetesClient(config);
+//        } catch (KubernetesClientException e) {
+//            log.info("Failed to init k8s client");
+//            throw new RuntimeException(e.getLocalizedMessage());
+//        }
+//    }
 }
