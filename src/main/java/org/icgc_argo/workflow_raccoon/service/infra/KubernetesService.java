@@ -18,39 +18,57 @@
 
 package org.icgc_argo.workflow_raccoon.service.infra;
 
+import io.fabric8.kubernetes.client.ConfigBuilder;
+import io.fabric8.kubernetes.client.DefaultKubernetesClient;
+import io.fabric8.kubernetes.client.KubernetesClientException;
+import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import lombok.val;
 import org.icgc_argo.workflow_raccoon.properties.KubernetesProperties;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Mono;
-
-import java.util.Map;
 
 @Slf4j
 @Service
 @RequiredArgsConstructor
 public class KubernetesService implements InfraService {
-    private final KubernetesProperties properties;
+  private static final String RUNNING = "RUNNING";
+  private static final String SUCCEEDED = "SUCCEEDED";
+  private static final String FAILED = "FAILED";
 
-    Map<String, Boolean> lookUp = Map.of("wes-123", false, "wes-456", true);
+  private final DefaultKubernetesClient client;
 
-    public Mono<Boolean> isWorkflowNotRunning(String id) {
-      return Mono.just(lookUp.getOrDefault(id, false));
+  Map<String, Boolean> lookUp = Map.of("wes-123", false, "wes-456", true);
+
+  public Mono<Boolean> isWorkflowNotRunning(String id) {
+    return Mono.just(lookUp.getOrDefault(id, false));
+  }
+
+  public Boolean isPodNotRunning(String name) {
+    return !isPodRunning(name);
+  }
+
+  public Boolean isPodRunning(String name) {
+    val pod = client.pods().withName(name).get();
+    val phase = pod.getStatus().getPhase();
+    log.info("Pod {} has phase {}", name, phase);
+    return phase.equalsIgnoreCase(RUNNING);
+  }
+
+  private DefaultKubernetesClient kubernetesClient(KubernetesProperties properties) {
+    log.info("Init k8s client");
+    try {
+      val config =
+          new ConfigBuilder()
+              .withMasterUrl(properties.getMasterUrl())
+              .withNamespace(properties.getRunsNamespace())
+              .withTrustCerts(properties.getTrustCertificate())
+              .build();
+      return new DefaultKubernetesClient(config);
+    } catch (KubernetesClientException e) {
+      log.info("Failed to init k8s client");
+      throw new RuntimeException(e.getLocalizedMessage());
     }
-
-//    private DefaultKubernetesClient kubernetesClient() {
-//        log.info("Init k8s client");
-//        try {
-//            val config =
-//                    new ConfigBuilder()
-//                            .withMasterUrl(properties.getMasterUrl())
-//                            .withNamespace(properties.getRunsNamespace())
-//                            .withTrustCerts(properties.getTrustCertificate())
-//                            .build();
-//            return new DefaultKubernetesClient(config);
-//        } catch (KubernetesClientException e) {
-//            log.info("Failed to init k8s client");
-//            throw new RuntimeException(e.getLocalizedMessage());
-//        }
-//    }
+  }
 }

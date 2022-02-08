@@ -20,8 +20,8 @@ package org.icgc_argo.workflow_raccoon.service;
 
 import lombok.RequiredArgsConstructor;
 import org.icgc_argo.workflow_raccoon.model.DryRunResponse;
+import org.icgc_argo.workflow_raccoon.model.rdpc.Run;
 import org.icgc_argo.workflow_raccoon.service.infra.InfraService;
-import org.icgc_argo.workflow_raccoon.service.infra.KubernetesService;
 import org.icgc_argo.workflow_raccoon.service.rdpc.RdpcService;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Mono;
@@ -29,17 +29,21 @@ import reactor.core.publisher.Mono;
 @Service
 @RequiredArgsConstructor
 public class RaccoonService {
-    private final InfraService infraService;
-    private final RdpcService rdpcService;
+  private final InfraService infraService;
+  private final RdpcService rdpcService;
 
-    public Mono<DryRunResponse> dryRun() {
-      return this.rdpcService.getRunningWorkflows()
-              .filterWhen(infraService::isWorkflowNotRunning)
-              .collectList()
-              .map(runs -> DryRunResponse.builder()
-                      .numJobsStuck(runs.size())
-                      .numPodsToCleanup(0)
-                      .numSecretsToCleanup(0)
-                      .build());
-    }
+  public Mono<DryRunResponse> dryRun() {
+    return this.rdpcService
+        .getAlLActiveRuns()
+        .map(Run::getRunId)
+        .filterWhen(infraService::isWorkflowNotRunning)
+        .collectList()
+        .map(
+            runs ->
+                DryRunResponse.builder()
+                    .numJobsStuck(runs.size())
+                    .numPodsToCleanup(0)
+                    .numSecretsToCleanup(0)
+                    .build());
+  }
 }

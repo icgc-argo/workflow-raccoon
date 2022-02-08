@@ -21,5 +21,5 @@ package org.icgc_argo.workflow_raccoon.service.infra;
 import reactor.core.publisher.Mono;
 
 public interface InfraService {
-    Mono<Boolean> isWorkflowNotRunning(String id);
+  Mono<Boolean> isWorkflowNotRunning(String id);
 }

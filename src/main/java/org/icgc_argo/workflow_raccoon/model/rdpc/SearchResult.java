@@ -16,18 +16,24 @@
  * ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package org.icgc_argo.workflow_raccoon.properties;
+package org.icgc_argo.workflow_raccoon.model.rdpc;
 
-import lombok.Value;
-import org.springframework.boot.context.properties.ConfigurationProperties;
-import org.springframework.boot.context.properties.ConstructorBinding;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import java.util.List;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 
-@Value
-@ConstructorBinding
-@ConfigurationProperties("rdpc")
-public class RdpcProperties {
-  String url;
-  String clientId;
-  String clientSecret;
-  String tokenUrl;
+@Data
+@NoArgsConstructor
+@JsonIgnoreProperties(ignoreUnknown = true)
+public class SearchResult<T> {
+  List<T> content;
+  Info info;
+
+  @Data
+  @NoArgsConstructor
+  @JsonIgnoreProperties(ignoreUnknown = true)
+  public static class Info {
+    Boolean hasNextFrom;
+  }
 }

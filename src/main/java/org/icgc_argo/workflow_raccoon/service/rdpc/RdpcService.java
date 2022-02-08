@@ -18,12 +18,133 @@
 
 package org.icgc_argo.workflow_raccoon.service.rdpc;
 
+import java.util.Map;
+import lombok.val;
+import org.icgc_argo.workflow_raccoon.model.rdpc.GqlRunsResponse;
+import org.icgc_argo.workflow_raccoon.model.rdpc.Run;
+import org.icgc_argo.workflow_raccoon.properties.RdpcProperties;
+import org.springframework.http.MediaType;
+import org.springframework.security.oauth2.client.AuthorizedClientServiceReactiveOAuth2AuthorizedClientManager;
+import org.springframework.security.oauth2.client.ClientCredentialsReactiveOAuth2AuthorizedClientProvider;
+import org.springframework.security.oauth2.client.InMemoryReactiveOAuth2AuthorizedClientService;
+import org.springframework.security.oauth2.client.registration.ClientRegistration;
+import org.springframework.security.oauth2.client.registration.InMemoryReactiveClientRegistrationRepository;
+import org.springframework.security.oauth2.client.web.reactive.function.client.ServerOAuth2AuthorizedClientExchangeFilterFunction;
 import org.springframework.stereotype.Service;
+import org.springframework.web.reactive.function.client.ExchangeFilterFunction;
+import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
+import reactor.util.function.Tuple2;
+import reactor.util.function.Tuples;
+
+import static org.springframework.security.oauth2.core.AuthorizationGrantType.CLIENT_CREDENTIALS;
 
 @Service
 public class RdpcService {
-    public Flux<String> getRunningWorkflows() {
-        return Flux.just("wes-123", "wes-456");
-    }
+    private static final Integer DEFAULT_SIZE = 10;
+
+  private static final String RESOURCE_ID_HEADER = "X-Resource-ID";
+  private static final String OUATH_RESOURCE_ID = "rdpcOauth";
+
+  final WebClient webClient;
+
+  public RdpcService(RdpcProperties properties) {
+    val oauthFilter =
+        createOauthFilter(
+                properties.getTokenUrl(),
+            properties.getClientId(),
+            properties.getClientSecret());
+
+    webClient =
+        WebClient.builder()
+            .baseUrl(properties.getUrl())
+            .filter(oauthFilter)
+            .defaultHeader(RESOURCE_ID_HEADER, OUATH_RESOURCE_ID)
+            .build();
+  }
+
+  public Flux<Run> getAlLActiveRuns() {
+      return Flux.merge(
+              getAllRunsWithState("RUNNING"),
+              getAllRunsWithState("INITIALIZING"),
+              getAllRunsWithState("QUEUED"),
+              getAllRunsWithState("CANCELLING"));
+  }
+
+  public Flux<Run> getAllRunsWithState(String state) {
+      return getActiveRunsInPage(0, DEFAULT_SIZE, state)
+           .expand(tuple2 -> {
+               val currentPageNum = tuple2.getT1();
+               val gqlRunsRes = tuple2.getT2();
+               if (gqlRunsRes.getData().getRuns().getInfo().getHasNextFrom()) {
+                   return getActiveRunsInPage(currentPageNum + 1, DEFAULT_SIZE, state);
+               }
+               return Mono.empty();
+           })
+          .flatMapIterable(tuple2 -> tuple2.getT2().getData().getRuns().getContent());
+  }
+
+  private Mono<Tuple2<Integer, GqlRunsResponse>> getActiveRunsInPage(Integer page, Integer size, String state) {
+      return getActiveRunsFrom(page * size, size, state)
+              .map(gqlRunsResponse -> Tuples.of(page, gqlRunsResponse));
+  }
+
+  private Mono<GqlRunsResponse> getActiveRunsFrom(Integer from, Integer size, String state) {
+    val body = createBody(from, size, state);
+    return webClient
+        .post()
+        .uri("")
+        .contentType(MediaType.APPLICATION_JSON)
+        .bodyValue(body)
+        .retrieve()
+        .bodyToMono(GqlRunsResponse.class)
+        .log("RdpcService");
+  }
+
+  private Map<String, Object> createBody(Integer from, Integer size, String state) {
+    val QUERY =
+        "query ($from: Int!, $size: Int!, $state:String!) {\n"
+            + "  runs(filter: {state: $state}, sorts: {fieldName: startTime, order: asc}, page: {from: $from, size: $size}) {\n"
+            + "    info {\n"
+            + "      hasNextFrom\n"
+            + "    }\n"
+            + "    content {\n"
+            + "      runId\n"
+            + "      state\n"
+            + "      startTime\n"
+            + "    }\n"
+            + "  }\n"
+            + "}\n";
+    val variables = Map.of("from", from, "size", size, "state", state);
+
+    return Map.of("query", QUERY, "variables", variables);
+  }
+
+  private ExchangeFilterFunction createOauthFilter(
+          String tokenUrl, String clientId, String clientSecret) {
+    // create client registration with Id for lookup by filter when needed
+    val registration =
+        ClientRegistration.withRegistrationId(OUATH_RESOURCE_ID)
+            .tokenUri(tokenUrl)
+            .clientId(clientId)
+            .clientSecret(clientSecret)
+            .authorizationGrantType(CLIENT_CREDENTIALS)
+            .build();
+    val repo = new InMemoryReactiveClientRegistrationRepository(registration);
+
+    // create new client manager to isolate from server oauth2 manager
+    // more info: https://github.com/spring-projects/spring-security/issues/7984
+    val authorizedClientService = new InMemoryReactiveOAuth2AuthorizedClientService(repo);
+    val authorizedClientManager =
+        new AuthorizedClientServiceReactiveOAuth2AuthorizedClientManager(
+            repo, authorizedClientService);
+    authorizedClientManager.setAuthorizedClientProvider(
+        new ClientCredentialsReactiveOAuth2AuthorizedClientProvider());
+
+    // create filter function
+    val oauth = new ServerOAuth2AuthorizedClientExchangeFilterFunction(authorizedClientManager);
+    oauth.setDefaultClientRegistrationId(OUATH_RESOURCE_ID);
+    return oauth;
+  }
 }
