@@ -16,10 +16,14 @@
  * ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package org.icgc_argo.workflow_raccoon.service.rdpc;
+package org.icgc_argo.workflow_raccoon.service;
+
+import static org.springframework.security.oauth2.core.AuthorizationGrantType.CLIENT_CREDENTIALS;
 
 import java.util.Map;
+import lombok.NonNull;
 import lombok.val;
+import org.icgc_argo.workflow_raccoon.model.WesStates;
 import org.icgc_argo.workflow_raccoon.model.rdpc.GqlRunsResponse;
 import org.icgc_argo.workflow_raccoon.model.rdpc.Run;
 import org.icgc_argo.workflow_raccoon.properties.RdpcProperties;
@@ -38,23 +42,18 @@ import reactor.core.publisher.Mono;
 import reactor.util.function.Tuple2;
 import reactor.util.function.Tuples;
 
-import static org.springframework.security.oauth2.core.AuthorizationGrantType.CLIENT_CREDENTIALS;
-
 @Service
 public class RdpcService {
-    private static final Integer DEFAULT_SIZE = 10;
-
+  private static final Integer DEFAULT_SIZE = 20;
   private static final String RESOURCE_ID_HEADER = "X-Resource-ID";
   private static final String OUATH_RESOURCE_ID = "rdpcOauth";
 
-  final WebClient webClient;
+  private final WebClient webClient;
 
   public RdpcService(RdpcProperties properties) {
     val oauthFilter =
         createOauthFilter(
-                properties.getTokenUrl(),
-            properties.getClientId(),
-            properties.getClientSecret());
+            properties.getTokenUrl(), properties.getClientId(), properties.getClientSecret());
 
     webClient =
         WebClient.builder()
@@ -65,32 +64,30 @@ public class RdpcService {
   }
 
   public Flux<Run> getAlLActiveRuns() {
-      return Flux.merge(
-              getAllRunsWithState("RUNNING"),
-              getAllRunsWithState("INITIALIZING"),
-              getAllRunsWithState("QUEUED"),
-              getAllRunsWithState("CANCELLING"));
+    return getAllRunsWithState(WesStates.RUNNING);
   }
 
-  public Flux<Run> getAllRunsWithState(String state) {
-      return getActiveRunsInPage(0, DEFAULT_SIZE, state)
-           .expand(tuple2 -> {
-               val currentPageNum = tuple2.getT1();
-               val gqlRunsRes = tuple2.getT2();
-               if (gqlRunsRes.getData().getRuns().getInfo().getHasNextFrom()) {
-                   return getActiveRunsInPage(currentPageNum + 1, DEFAULT_SIZE, state);
-               }
-               return Mono.empty();
-           })
-          .flatMapIterable(tuple2 -> tuple2.getT2().getData().getRuns().getContent());
+  public Flux<Run> getAllRunsWithState(@NonNull WesStates state) {
+    return getActiveRunsInPage(0, state)
+        .expand(
+            tuple2 -> {
+              val currentPageNum = tuple2.getT1();
+              val gqlRunsRes = tuple2.getT2();
+              if (gqlRunsRes.getData().getRuns().getInfo().getHasNextFrom()) {
+                return getActiveRunsInPage(currentPageNum + 1, state);
+              }
+              return Mono.empty();
+            })
+        .flatMapIterable(tuple2 -> tuple2.getT2().getData().getRuns().getContent());
   }
 
-  private Mono<Tuple2<Integer, GqlRunsResponse>> getActiveRunsInPage(Integer page, Integer size, String state) {
-      return getActiveRunsFrom(page * size, size, state)
-              .map(gqlRunsResponse -> Tuples.of(page, gqlRunsResponse));
+  private Mono<Tuple2<Integer, GqlRunsResponse>> getActiveRunsInPage(
+      Integer page, WesStates state) {
+    return getActiveRunsFrom(page * DEFAULT_SIZE, DEFAULT_SIZE, state)
+        .map(gqlRunsResponse -> Tuples.of(page, gqlRunsResponse));
   }
 
-  private Mono<GqlRunsResponse> getActiveRunsFrom(Integer from, Integer size, String state) {
+  private Mono<GqlRunsResponse> getActiveRunsFrom(Integer from, Integer size, WesStates state) {
     val body = createBody(from, size, state);
     return webClient
         .post()
@@ -102,7 +99,7 @@ public class RdpcService {
         .log("RdpcService");
   }
 
-  private Map<String, Object> createBody(Integer from, Integer size, String state) {
+  private Map<String, Object> createBody(Integer from, Integer size, WesStates state) {
     val QUERY =
         "query ($from: Int!, $size: Int!, $state:String!) {\n"
             + "  runs(filter: {state: $state}, sorts: {fieldName: startTime, order: asc}, page: {from: $from, size: $size}) {\n"
@@ -116,13 +113,13 @@ public class RdpcService {
             + "    }\n"
             + "  }\n"
             + "}\n";
-    val variables = Map.of("from", from, "size", size, "state", state);
+    val variables = Map.of("from", from, "size", size, "state", state.getValue());
 
     return Map.of("query", QUERY, "variables", variables);
   }
 
   private ExchangeFilterFunction createOauthFilter(
-          String tokenUrl, String clientId, String clientSecret) {
+      String tokenUrl, String clientId, String clientSecret) {
     // create client registration with Id for lookup by filter when needed
     val registration =
         ClientRegistration.withRegistrationId(OUATH_RESOURCE_ID)

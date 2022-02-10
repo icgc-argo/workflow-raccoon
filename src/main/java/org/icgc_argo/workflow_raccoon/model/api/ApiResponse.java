@@ -16,10 +16,14 @@
  * ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package org.icgc_argo.workflow_raccoon.service.infra;
+package org.icgc_argo.workflow_raccoon.model.api;
 
-import reactor.core.publisher.Mono;
+import lombok.Builder;
+import lombok.Value;
 
-public interface InfraService {
-  Mono<Boolean> isWorkflowNotRunning(String id);
+@Value
+@Builder
+public class ApiResponse {
+  Integer code;
+  String message;
 }

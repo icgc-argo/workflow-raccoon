@@ -20,8 +20,8 @@
 package org.icgc_argo.workflow_raccoon.controller;
 
 import lombok.RequiredArgsConstructor;
-import org.icgc_argo.workflow_raccoon.model.ApiResponse;
-import org.icgc_argo.workflow_raccoon.model.DryRunResponse;
+import org.icgc_argo.workflow_raccoon.model.api.ApiResponse;
+import org.icgc_argo.workflow_raccoon.model.api.DryRunResponse;
 import org.icgc_argo.workflow_raccoon.service.RaccoonService;
 import org.springframework.web.bind.annotation.RestController;
 import reactor.core.publisher.Mono;

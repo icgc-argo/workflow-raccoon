@@ -18,32 +18,87 @@
 
 package org.icgc_argo.workflow_raccoon.service;
 
+import java.util.Date;
+import java.util.HashMap;
+import java.util.List;
+import java.util.function.Function;
+import java.util.stream.Stream;
 import lombok.RequiredArgsConstructor;
-import org.icgc_argo.workflow_raccoon.model.DryRunResponse;
+import lombok.val;
+import org.icgc_argo.workflow_raccoon.model.RunStateUpdateDto;
+import org.icgc_argo.workflow_raccoon.model.WesStates;
+import org.icgc_argo.workflow_raccoon.model.api.DryRunResponse;
+import org.icgc_argo.workflow_raccoon.model.kubernetes.ConfigMap;
+import org.icgc_argo.workflow_raccoon.model.kubernetes.RunPod;
 import org.icgc_argo.workflow_raccoon.model.rdpc.Run;
-import org.icgc_argo.workflow_raccoon.service.infra.InfraService;
-import org.icgc_argo.workflow_raccoon.service.rdpc.RdpcService;
+import org.icgc_argo.workflow_raccoon.properties.RaccoonProperties;
 import org.springframework.stereotype.Service;
+import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 @Service
 @RequiredArgsConstructor
 public class RaccoonService {
-  private final InfraService infraService;
+  private final RaccoonProperties properties;
+  private final KubernetesService kubernetesService;
   private final RdpcService rdpcService;
 
   public Mono<DryRunResponse> dryRun() {
-    return this.rdpcService
-        .getAlLActiveRuns()
-        .map(Run::getRunId)
-        .filterWhen(infraService::isWorkflowNotRunning)
+    val kubeSummary = kubernetesService.getSummary();
+    val podRotation = new Date(); // TODO use properties
+    val podsToRemove =
+        resourceCleanupStream(kubeSummary.getRunPods(), RunPod::getAge, podRotation).count();
+    val configMapToRemove =
+        resourceCleanupStream(kubeSummary.getConfigMaps(), ConfigMap::getAge, podRotation).count();
+    return runsToUpdate(rdpcService.getAlLActiveRuns(), kubeSummary.getRunPods())
         .collectList()
         .map(
-            runs ->
+            runStateUpdateDtos ->
                 DryRunResponse.builder()
-                    .numJobsStuck(runs.size())
-                    .numPodsToCleanup(0)
-                    .numSecretsToCleanup(0)
+                    .numJobsStuck(runStateUpdateDtos.size())
+                    .numPodsToCleanup(podsToRemove)
+                    .numSecretsToCleanup(configMapToRemove)
                     .build());
+  }
+
+  public Flux<RunStateUpdateDto> runsToUpdate(Flux<Run> activeRuns, List<RunPod> allRunPods) {
+    val kubeRunsLookUp = new HashMap<String, RunPod>();
+    allRunPods.forEach(
+        kubeRun -> {
+          if (kubeRunsLookUp.containsKey(kubeRun.getRunId())) {
+            throw new Error("Found two kubernetes runs with same id! Shouldn't be possible!");
+          }
+          kubeRunsLookUp.put(kubeRun.getRunId(), kubeRun);
+        });
+
+    return activeRuns.flatMap(
+        runningRun -> {
+          RunStateUpdateDto dto = null;
+          if (!kubeRunsLookUp.containsKey(runningRun.getRunId())) {
+            dto =
+                RunStateUpdateDto.builder()
+                    .runId(runningRun.getRunId())
+                    .currentState(runningRun.getState())
+                    .newState(WesStates.SYSTEM_ERROR)
+                    .logs("")
+                    .build();
+          }
+          val kubeRun = kubeRunsLookUp.get(runningRun.getRunId());
+          if (!kubeRun.getState().equals(runningRun.getState())) {
+            dto =
+                RunStateUpdateDto.builder()
+                    .runId(runningRun.getRunId())
+                    .currentState(runningRun.getState())
+                    .newState(kubeRun.getState())
+                    .logs(kubeRun.getLogs())
+                    .build();
+          }
+          return dto == null ? Mono.empty() : Mono.just(dto);
+        });
+  }
+
+  private <T> Stream<T> resourceCleanupStream(
+      List<T> allRunPods, Function<T, Date> dateFunction, Date rotationDate) {
+    return allRunPods.stream().filter(resource -> dateFunction.apply(resource).before(rotationDate));
   }
 }

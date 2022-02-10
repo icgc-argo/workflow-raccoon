@@ -16,47 +16,68 @@
  * ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package org.icgc_argo.workflow_raccoon.service.infra;
+package org.icgc_argo.workflow_raccoon.service;
 
+import static java.util.stream.Collectors.toUnmodifiableList;
+import static org.icgc_argo.workflow_raccoon.model.WesStates.*;
+
+import io.fabric8.kubernetes.api.model.Pod;
 import io.fabric8.kubernetes.client.ConfigBuilder;
 import io.fabric8.kubernetes.client.DefaultKubernetesClient;
 import io.fabric8.kubernetes.client.KubernetesClientException;
-import java.util.Map;
+import java.util.List;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
+import org.icgc_argo.workflow_raccoon.model.WesStates;
+import org.icgc_argo.workflow_raccoon.model.kubernetes.RunPod;
+import org.icgc_argo.workflow_raccoon.model.kubernetes.Summary;
 import org.icgc_argo.workflow_raccoon.properties.KubernetesProperties;
 import org.springframework.stereotype.Service;
-import reactor.core.publisher.Mono;
 
 @Slf4j
 @Service
 @RequiredArgsConstructor
-public class KubernetesService implements InfraService {
+public class KubernetesService {
   private static final String RUNNING = "RUNNING";
   private static final String SUCCEEDED = "SUCCEEDED";
   private static final String FAILED = "FAILED";
 
   private final DefaultKubernetesClient client;
 
-  Map<String, Boolean> lookUp = Map.of("wes-123", false, "wes-456", true);
-
-  public Mono<Boolean> isWorkflowNotRunning(String id) {
-    return Mono.just(lookUp.getOrDefault(id, false));
+  public KubernetesService(KubernetesProperties properties) {
+    this.client = createKubernetesClient(properties);
   }
 
-  public Boolean isPodNotRunning(String name) {
-    return !isPodRunning(name);
+  public Summary getSummary() {
+    return Summary.builder().runPods(getCurrentRunPods()).configMaps(List.of()).build();
   }
 
-  public Boolean isPodRunning(String name) {
-    val pod = client.pods().withName(name).get();
-    val phase = pod.getStatus().getPhase();
-    log.info("Pod {} has phase {}", name, phase);
-    return phase.equalsIgnoreCase(RUNNING);
+  private List<RunPod> getCurrentRunPods() {
+    return client.pods().list().getItems().stream()
+        .filter(pod -> pod.getMetadata().getName().startsWith("wf-"))
+        .map(
+            pod ->
+                RunPod.builder()
+                    .runId(pod.getMetadata().getName())
+                    .state(getRunExecutorState(pod))
+                    .logs("TBD")
+                    .build())
+        .collect(toUnmodifiableList());
   }
 
-  private DefaultKubernetesClient kubernetesClient(KubernetesProperties properties) {
+  private WesStates getRunExecutorState(Pod pod) {
+    if (pod.getStatus().getPhase().equalsIgnoreCase(RUNNING)) {
+      return WesStates.RUNNING;
+    } else if (pod.getStatus().getPhase().equalsIgnoreCase(FAILED)) {
+      return EXECUTOR_ERROR;
+    } else if (pod.getStatus().getPhase().equalsIgnoreCase(SUCCEEDED)) {
+      return COMPLETE;
+    }
+    return SYSTEM_ERROR;
+  }
+
+  private DefaultKubernetesClient createKubernetesClient(KubernetesProperties properties) {
     log.info("Init k8s client");
     try {
       val config =

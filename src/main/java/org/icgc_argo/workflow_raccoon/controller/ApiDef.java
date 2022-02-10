@@ -24,8 +24,8 @@ import static org.springframework.http.MediaType.APPLICATION_JSON_VALUE;
 
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
-import org.icgc_argo.workflow_raccoon.model.ApiResponse;
-import org.icgc_argo.workflow_raccoon.model.DryRunResponse;
+import org.icgc_argo.workflow_raccoon.model.api.ApiResponse;
+import org.icgc_argo.workflow_raccoon.model.api.DryRunResponse;
 import org.springframework.web.bind.annotation.PostMapping;
 import reactor.core.publisher.Mono;
 

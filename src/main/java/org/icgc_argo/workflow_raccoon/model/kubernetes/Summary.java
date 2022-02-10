@@ -16,18 +16,15 @@
  * ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package org.icgc_argo.workflow_raccoon.model.rdpc;
+package org.icgc_argo.workflow_raccoon.model.kubernetes;
 
-import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
-import lombok.Data;
-import lombok.NoArgsConstructor;
-import org.icgc_argo.workflow_raccoon.model.WesStates;
+import java.util.List;
+import lombok.Builder;
+import lombok.Value;
 
-@Data
-@NoArgsConstructor
-@JsonIgnoreProperties(ignoreUnknown = true)
-public class Run {
-  String runId;
-  WesStates state;
-  String startTime;
+@Builder
+@Value
+public class Summary {
+  List<RunPod> runPods;
+  List<ConfigMap> configMaps;
 }
