@@ -20,12 +20,14 @@
 package org.icgc_argo.workflow_raccoon.controller;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.icgc_argo.workflow_raccoon.model.MealPlan;
 import org.icgc_argo.workflow_raccoon.service.RaccoonService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.RestController;
 import reactor.core.publisher.Mono;
 
+@Slf4j
 @RestController
 @RequiredArgsConstructor
 public class ApiImpl implements ApiDef {
@@ -33,7 +35,9 @@ public class ApiImpl implements ApiDef {
 
   @Override
   public Mono<ResponseEntity<String>> run() {
-    raccoonService.prepareAndExecuteMealPlan().subscribe();
+    raccoonService
+        .prepareAndExecuteMealPlan()
+        .subscribe(successful -> log.info("Async cleanup completed successfully=" + successful));
     return Mono.just(ResponseEntity.ok("Raccoon started async cleanup!"));
   }
 
