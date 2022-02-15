@@ -18,19 +18,20 @@
 
 package org.icgc_argo.workflow_raccoon.service;
 
+import static java.util.stream.Collectors.toUnmodifiableList;
+
 import java.time.ZonedDateTime;
 import java.util.HashMap;
 import java.util.List;
 import java.util.function.Function;
-import java.util.stream.Stream;
 import lombok.RequiredArgsConstructor;
 import lombok.val;
-import org.icgc_argo.workflow_raccoon.model.weblog.RunStateUpdate;
+import org.icgc_argo.workflow_raccoon.model.MealPlan;
 import org.icgc_argo.workflow_raccoon.model.WesStates;
-import org.icgc_argo.workflow_raccoon.model.api.DryRunResponse;
 import org.icgc_argo.workflow_raccoon.model.kubernetes.ConfigMap;
 import org.icgc_argo.workflow_raccoon.model.kubernetes.RunPod;
 import org.icgc_argo.workflow_raccoon.model.rdpc.Run;
+import org.icgc_argo.workflow_raccoon.model.weblog.RunStateUpdate;
 import org.icgc_argo.workflow_raccoon.properties.RaccoonProperties;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
@@ -42,45 +43,48 @@ public class RaccoonService {
   private final RaccoonProperties properties;
   private final KubernetesService kubernetesService;
   private final RdpcService rdpcService;
+  private final WeblogService weblogService;
 
-  public Mono<DryRunResponse> dryRunCleanup() {
-    val kubeSummary = kubernetesService.getSummary();
+  public Mono<Boolean> prepareAndExecuteMealPlan() {
+    return prepareMealPlan().flatMap(this::executeMealPlan);
+  }
+
+  public Mono<MealPlan> prepareMealPlan() {
+    val allRunPods = kubernetesService.getCurrentRunPods();
+    val configMaps = kubernetesService.getCurrentRunConfigMaps();
+
     val podRotation = ZonedDateTime.now(); // TODO use properties
-    val podsToRemove =
-        resourceCleanupStream(kubeSummary.getRunPods(), RunPod::getAge, podRotation).count();
-    val configMapToRemove =
-        resourceCleanupStream(kubeSummary.getConfigMaps(), ConfigMap::getAge, podRotation).count();
-    return runsToUpdate(rdpcService.getAlLActiveRuns(), kubeSummary.getRunPods())
+    val staleRunPods = resourceForCleanup(allRunPods, RunPod::getAge, podRotation);
+    val staleConfigMaps = resourceForCleanup(configMaps, ConfigMap::getAge, podRotation);
+
+    return runsToUpdate(rdpcService.getAlLActiveRuns(), allRunPods)
         .collectList()
         .map(
-            runStateUpdateDtos ->
-                DryRunResponse.builder()
-                    .numJobsStuck(runStateUpdateDtos.size())
-                    .numPodsToCleanup(podsToRemove)
-                    .numSecretsToCleanup(configMapToRemove)
+            runUpdates ->
+                MealPlan.builder()
+                    .runUpdates(runUpdates)
+                    .staleConfigMaps(staleConfigMaps)
+                    .staleRunPods(staleRunPods)
                     .build());
   }
 
-  public Mono<Boolean> runCleanup() {
-      val kubeSummary = kubernetesService.getSummary();
-      val podRotation = ZonedDateTime.now(); // TODO use properties
+  private Mono<Boolean> executeMealPlan(MealPlan mealPlan) {
+    val updateRuns =
+        Flux.fromIterable(mealPlan.getRunUpdates()).concatMap(weblogService::updateRunViaWeblog);
 
-      // delete stale run pods
-      resourceCleanupStream(kubeSummary.getRunPods(), RunPod::getAge, podRotation)
-              .map(RunPod::getRunId)
-              .forEach(kubernetesService::deletePod);
+    val deleteStaleRunPods =
+        Flux.fromIterable(mealPlan.getStaleRunPods()).map(kubernetesService::deletePod);
 
-      // delete stale config maps
-      resourceCleanupStream(kubeSummary.getConfigMaps(), ConfigMap::getAge, podRotation)
-          .map(ConfigMap::getName)
-          .forEach(kubernetesService::deleteConfigMap);
+    val deleteStaleConfigMaps =
+        Flux.fromIterable(mealPlan.getStaleConfigMaps()).map(kubernetesService::deleteConfigMap);
 
-      //      runsToUpdate(rdpcService.getAlLActiveRuns(), kubeSummary.getRunPods())
-      //      .flatMap(rdpcService::weblog);
-      return Mono.empty();
+    return Flux.concat(updateRuns, deleteStaleRunPods, deleteStaleConfigMaps)
+        .count() // to make sure all elements in flux complete
+        .then(Mono.just(true))
+        .onErrorReturn(false);
   }
 
-  public Flux<RunStateUpdate> runsToUpdate(Flux<Run> activeRuns, List<RunPod> allRunPods) {
+  private Flux<RunStateUpdate> runsToUpdate(Flux<Run> activeRuns, List<RunPod> allRunPods) {
     val kubeRunsLookUp = new HashMap<String, RunPod>();
     allRunPods.forEach(
         kubeRun -> {
@@ -101,23 +105,28 @@ public class RaccoonService {
                     .newState(WesStates.SYSTEM_ERROR)
                     .logs("")
                     .build();
-          }
-          val kubeRun = kubeRunsLookUp.get(runningRun.getRunId());
-          if (!kubeRun.getState().equals(runningRun.getState())) {
-            dto =
-                RunStateUpdate.builder()
-                    .runId(runningRun.getRunId())
-                    .currentState(runningRun.getState())
-                    .newState(kubeRun.getState())
-                    .logs(kubeRun.getLog())
-                    .build();
+          } else {
+            val kubeRun = kubeRunsLookUp.get(runningRun.getRunId());
+            if (!kubeRun.getState().equals(runningRun.getState())) {
+              dto =
+                  RunStateUpdate.builder()
+                      .runId(runningRun.getRunId())
+                      .currentState(runningRun.getState())
+                      .newState(kubeRun.getState())
+                      .logs(kubeRun.getLog())
+                      .build();
+            }
           }
           return dto == null ? Mono.empty() : Mono.just(dto);
         });
   }
 
-  private <T> Stream<T> resourceCleanupStream(
-          List<T> allRunPods, Function<T, ZonedDateTime> dateFunction, ZonedDateTime rotationDate) {
-    return allRunPods.stream().filter(resource -> dateFunction.apply(resource).isEqual(rotationDate));
+  private <T> List<T> resourceForCleanup(
+      List<T> resources,
+      Function<T, ZonedDateTime> dateGetterFunction,
+      ZonedDateTime rotationDate) {
+    return resources.stream()
+        .filter(resource -> dateGetterFunction.apply(resource).isBefore(rotationDate))
+        .collect(toUnmodifiableList());
   }
 }

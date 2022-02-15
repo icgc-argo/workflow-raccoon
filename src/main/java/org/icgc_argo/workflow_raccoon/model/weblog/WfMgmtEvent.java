@@ -18,9 +18,9 @@
 
 package org.icgc_argo.workflow_raccoon.model.weblog;
 
-import lombok.*;
-
-import static java.lang.String.format;
+import lombok.Builder;
+import lombok.NonNull;
+import lombok.Value;
 
 @Value
 @Builder

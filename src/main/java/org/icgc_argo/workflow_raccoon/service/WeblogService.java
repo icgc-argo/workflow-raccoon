@@ -18,6 +18,10 @@
 
 package org.icgc_argo.workflow_raccoon.service;
 
+import static org.icgc_argo.workflow_raccoon.utils.JacksonUtils.toJsonString;
+
+import java.time.ZonedDateTime;
+import java.util.Objects;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
@@ -29,45 +33,40 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Mono;
 
-import java.time.ZonedDateTime;
-import java.util.Objects;
-
-import static org.icgc_argo.workflow_raccoon.utils.JacksonUtils.toJsonString;
-
 @Slf4j
 @Service
 @RequiredArgsConstructor
 public class WeblogService {
-    private final WeblogProperties properties;
+  private final WeblogProperties properties;
 
-    public Mono<Boolean> updateRunViaWeblog(RunStateUpdate dto) {
-        val event =
-                WfMgmtEvent.builder()
-                        .runId(dto.getRunId())
-                        .event(dto.getNewState().getValue())
-                        .utcTime(String.valueOf(ZonedDateTime.now().toEpochSecond()))
-                        .build();
+  public Mono<Boolean> updateRunViaWeblog(RunStateUpdate dto) {
+    val event =
+        WfMgmtEvent.builder()
+            .runId(dto.getRunId())
+            .event(dto.getNewState().getValue())
+            .utcTime(String.valueOf(ZonedDateTime.now().toEpochSecond()))
+            .build();
 
-       return sendHttpMessage(event);
-    }
+    return sendHttpMessage(event);
+  }
 
-    private Mono<Boolean> sendHttpMessage(WfMgmtEvent wfMgmtEvent) {
-       val jsonStr =  toJsonString(wfMgmtEvent);
-        return WebClient.create(properties.getUrl())
-                .post()
-                .contentType(MediaType.APPLICATION_JSON)
-                .bodyValue(jsonStr)
-                .retrieve()
-                .toEntity(Boolean.class)
-                .flatMap(
-                        res -> {
-                            // Don't want to proceed with stream if response from weblog is bad, so throw error
-                            if (!res.getStatusCode().is2xxSuccessful() || !Objects.equals(res.getBody(), true)) {
-                                log.info("*** Failed to send event to weblog! ***");
-                                return Mono.error(new Exception("Failed to send event to weblog!"));
-                            }
-                            log.debug("Message sent to weblog: " + jsonStr);
-                            return Mono.just(res.getBody());
-                        });
-    }
+  private Mono<Boolean> sendHttpMessage(WfMgmtEvent wfMgmtEvent) {
+    val jsonStr = toJsonString(wfMgmtEvent);
+    return WebClient.create(properties.getUrl())
+        .post()
+        .contentType(MediaType.APPLICATION_JSON)
+        .bodyValue(jsonStr)
+        .retrieve()
+        .toEntity(Boolean.class)
+        .flatMap(
+            res -> {
+              // Don't want to proceed with stream if response from weblog is bad, so throw error
+              if (!res.getStatusCode().is2xxSuccessful() || !Objects.equals(res.getBody(), true)) {
+                log.info("*** Failed to send event to weblog! ***");
+                return Mono.error(new Exception("Failed to send event to weblog!"));
+              }
+              log.debug("Message sent to weblog: " + jsonStr);
+              return Mono.just(res.getBody());
+            });
+  }
 }

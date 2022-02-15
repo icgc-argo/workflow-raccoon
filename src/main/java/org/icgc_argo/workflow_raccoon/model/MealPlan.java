@@ -16,14 +16,19 @@
  * ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package org.icgc_argo.workflow_raccoon.model.api;
+package org.icgc_argo.workflow_raccoon.model;
 
+import java.util.List;
 import lombok.Builder;
 import lombok.Value;
+import org.icgc_argo.workflow_raccoon.model.kubernetes.ConfigMap;
+import org.icgc_argo.workflow_raccoon.model.kubernetes.RunPod;
+import org.icgc_argo.workflow_raccoon.model.weblog.RunStateUpdate;
 
 @Value
 @Builder
-public class ApiResponse {
-  Integer code;
-  String message;
+public class MealPlan {
+  List<RunStateUpdate> runUpdates;
+  List<ConfigMap> staleConfigMaps;
+  List<RunPod> staleRunPods;
 }

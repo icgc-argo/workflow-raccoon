@@ -20,9 +20,9 @@
 package org.icgc_argo.workflow_raccoon.controller;
 
 import lombok.RequiredArgsConstructor;
-import org.icgc_argo.workflow_raccoon.model.api.ApiResponse;
-import org.icgc_argo.workflow_raccoon.model.api.DryRunResponse;
+import org.icgc_argo.workflow_raccoon.model.MealPlan;
 import org.icgc_argo.workflow_raccoon.service.RaccoonService;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.RestController;
 import reactor.core.publisher.Mono;
 
@@ -32,12 +32,18 @@ public class ApiImpl implements ApiDef {
   private final RaccoonService raccoonService;
 
   @Override
-  public Mono<ApiResponse> run() {
-    return Mono.just(ApiResponse.builder().code(200).message("I don't do anything yet.").build());
+  public Mono<ResponseEntity<String>> run() {
+    return raccoonService
+        .prepareAndExecuteMealPlan()
+        .map(
+            completed ->
+                completed
+                    ? ResponseEntity.ok("Raccoon finished its meal!")
+                    : ResponseEntity.status(520).body("Cleanup had an error!"));
   }
 
   @Override
-  public Mono<DryRunResponse> dryRun() {
-    return raccoonService.dryRunCleanup();
+  public Mono<MealPlan> dryRun() {
+    return raccoonService.prepareMealPlan();
   }
 }

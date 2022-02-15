@@ -26,21 +26,17 @@ import io.fabric8.kubernetes.api.model.Pod;
 import io.fabric8.kubernetes.client.ConfigBuilder;
 import io.fabric8.kubernetes.client.DefaultKubernetesClient;
 import io.fabric8.kubernetes.client.KubernetesClientException;
-
 import java.util.List;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
 import org.icgc_argo.workflow_raccoon.model.WesStates;
 import org.icgc_argo.workflow_raccoon.model.kubernetes.ConfigMap;
 import org.icgc_argo.workflow_raccoon.model.kubernetes.RunPod;
-import org.icgc_argo.workflow_raccoon.model.kubernetes.Summary;
 import org.icgc_argo.workflow_raccoon.properties.KubernetesProperties;
 import org.springframework.stereotype.Service;
 
 @Slf4j
 @Service
-@RequiredArgsConstructor
 public class KubernetesService {
   private static final String RUNNING = "RUNNING";
   private static final String SUCCEEDED = "SUCCEEDED";
@@ -53,28 +49,46 @@ public class KubernetesService {
   private final KubernetesProperties properties;
   private final DefaultKubernetesClient client;
 
-
   public KubernetesService(KubernetesProperties properties) {
     this.properties = properties;
     this.client = createKubernetesClient(properties);
   }
 
-  public Summary getSummary() {
-    return Summary.builder().runPods(getCurrentRunPods()).configMaps(getCurrentRunConfigMaps()).build();
+  public Boolean deletePod(RunPod runPod) {
+    return client
+        .pods()
+        .inNamespace(properties.getRunsNamespace())
+        .withName(runPod.getRunId())
+        .delete();
   }
 
-  public Boolean deletePod(String podName) {
-    return client.pods().inNamespace(properties.getRunsNamespace()).withName(podName).delete();
+  public Boolean deleteConfigMap(ConfigMap configMap) {
+    return client
+        .configMaps()
+        .inNamespace(properties.getRunsNamespace())
+        .withName(configMap.getName())
+        .delete();
   }
 
-  public Boolean deleteConfigMap(String configMapName) {
-    return client.configMaps().inNamespace(properties.getRunsNamespace()).withName(configMapName).delete();
+  public List<ConfigMap> getCurrentRunConfigMaps() {
+    return client.configMaps().list().getItems().stream()
+        .filter(
+            configMap -> configMap.getMetadata().getName().startsWith(WORKFLOW_CONFIGMAP_PREFIX))
+        .map(
+            configMap ->
+                ConfigMap.builder()
+                    .name(configMap.getMetadata().getName())
+                    .age(parse(configMap.getMetadata().getCreationTimestamp()))
+                    .build())
+        .collect(toUnmodifiableList());
   }
 
-  private List<RunPod> getCurrentRunPods() {
+  public List<RunPod> getCurrentRunPods() {
     return client.pods().list().getItems().stream()
-        .filter(pod -> pod.getMetadata().getName().startsWith(WORKFLOW_PARENT_POD_PREFIX) ||
-                       pod.getMetadata().getName().startsWith(WORKFLOW_CHILD_POD_PREFIX))
+        .filter(
+            pod ->
+                pod.getMetadata().getName().startsWith(WORKFLOW_PARENT_POD_PREFIX)
+                    || pod.getMetadata().getName().startsWith(WORKFLOW_CHILD_POD_PREFIX))
         .map(
             pod ->
                 RunPod.builder()
@@ -89,17 +103,6 @@ public class KubernetesService {
   private String getPodLog(String podName) {
     return client.pods().inNamespace(properties.getRunsNamespace()).withName(podName).getLog();
   }
-
-  private List<ConfigMap> getCurrentRunConfigMaps() {
-    return client.configMaps().list().getItems().stream()
-            .filter(configMap -> configMap.getMetadata().getName().startsWith(WORKFLOW_CONFIGMAP_PREFIX))
-            .map(configMap -> ConfigMap.builder()
-                    .name(configMap.getMetadata().getName())
-                    .age(parse(configMap.getMetadata().getCreationTimestamp()))
-                    .build())
-            .collect(toUnmodifiableList());
-  }
-
 
   private WesStates getRunExecutorState(Pod pod) {
     if (pod.getStatus().getPhase().equalsIgnoreCase(RUNNING)) {

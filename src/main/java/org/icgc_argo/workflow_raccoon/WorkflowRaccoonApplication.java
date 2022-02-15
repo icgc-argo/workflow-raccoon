@@ -21,8 +21,10 @@ package org.icgc_argo.workflow_raccoon;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.boot.context.properties.ConfigurationPropertiesScan;
 
 @SpringBootApplication
+@ConfigurationPropertiesScan("org.icgc_argo.workflow_raccoon.properties")
 public class WorkflowRaccoonApplication {
 
   public static void main(String[] args) {

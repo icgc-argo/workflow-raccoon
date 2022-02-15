@@ -25,10 +25,10 @@ import lombok.Value;
 @Value
 @RequiredArgsConstructor
 public class NextflowEvent {
-    @NonNull String runId;
-    @NonNull String runName;
-    @NonNull String event;
-    @NonNull String utcTime;
-    @NonNull String log;
-    @NonNull Boolean success;
+  @NonNull String runId;
+  @NonNull String runName;
+  @NonNull String event;
+  @NonNull String utcTime;
+  @NonNull String log;
+  @NonNull Boolean success;
 }

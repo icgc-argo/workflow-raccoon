@@ -19,7 +19,6 @@
 package org.icgc_argo.workflow_raccoon.model.kubernetes;
 
 import java.time.ZonedDateTime;
-
 import lombok.Builder;
 import lombok.Value;
 import org.icgc_argo.workflow_raccoon.model.WesStates;

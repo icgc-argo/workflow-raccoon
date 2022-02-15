@@ -26,5 +26,5 @@ import org.springframework.boot.context.properties.ConstructorBinding;
 @ConstructorBinding
 @ConfigurationProperties("weblog")
 public class WeblogProperties {
-    String url;
+  String url;
 }
