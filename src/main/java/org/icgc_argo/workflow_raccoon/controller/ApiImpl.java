@@ -33,13 +33,8 @@ public class ApiImpl implements ApiDef {
 
   @Override
   public Mono<ResponseEntity<String>> run() {
-    return raccoonService
-        .prepareAndExecuteMealPlan()
-        .map(
-            completed ->
-                completed
-                    ? ResponseEntity.ok("Raccoon finished its meal!")
-                    : ResponseEntity.status(520).body("Cleanup had an error!"));
+    raccoonService.prepareAndExecuteMealPlan().subscribe();
+    return Mono.just(ResponseEntity.ok("Raccoon started async cleanup!"));
   }
 
   @Override
