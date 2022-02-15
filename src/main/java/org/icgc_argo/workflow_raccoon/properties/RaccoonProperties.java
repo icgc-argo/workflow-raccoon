@@ -26,6 +26,6 @@ import org.springframework.boot.context.properties.ConstructorBinding;
 @ConstructorBinding
 @ConfigurationProperties("raccoon")
 public class RaccoonProperties {
-  Integer podRotation;
-  Integer configMapRotation;
+  Integer podRotationDays;
+  Integer configMapRotationDays;
 }

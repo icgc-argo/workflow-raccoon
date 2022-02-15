@@ -18,6 +18,7 @@
 
 package org.icgc_argo.workflow_raccoon.service;
 
+import static java.time.ZonedDateTime.now;
 import static java.util.stream.Collectors.toUnmodifiableList;
 
 import java.time.ZonedDateTime;
@@ -53,9 +54,11 @@ public class RaccoonService {
     val allRunPods = kubernetesService.getCurrentRunPods();
     val configMaps = kubernetesService.getCurrentRunConfigMaps();
 
-    val podRotation = ZonedDateTime.now(); // TODO use properties
-    val staleRunPods = resourceForCleanup(allRunPods, RunPod::getAge, podRotation);
-    val staleConfigMaps = resourceForCleanup(configMaps, ConfigMap::getAge, podRotation);
+    val podsBefore = now().minusDays(properties.getPodRotationDays().longValue());
+    val configMapBefore = now().minusDays(properties.getConfigMapRotationDays().longValue());
+
+    val staleRunPods = toCleanup(allRunPods, RunPod::getAge, podsBefore);
+    val staleConfigMaps = toCleanup(configMaps, ConfigMap::getAge, configMapBefore);
 
     return runsToUpdate(rdpcService.getAlLActiveRuns(), allRunPods)
         .collectList()
@@ -121,12 +124,12 @@ public class RaccoonService {
         });
   }
 
-  private <T> List<T> resourceForCleanup(
+  private <T> List<T> toCleanup(
       List<T> resources,
       Function<T, ZonedDateTime> dateGetterFunction,
-      ZonedDateTime rotationDate) {
+      ZonedDateTime filterBeforeDate) {
     return resources.stream()
-        .filter(resource -> dateGetterFunction.apply(resource).isBefore(rotationDate))
+        .filter(resource -> dateGetterFunction.apply(resource).isBefore(filterBeforeDate))
         .collect(toUnmodifiableList());
   }
 }

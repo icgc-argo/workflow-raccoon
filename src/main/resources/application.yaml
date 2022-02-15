@@ -7,8 +7,8 @@ spring:
 server.port: 8090
 
 raccoon:
-  podRotation: 1
-  configMapRotation: 1
+  podRotationDays: 1
+  configMapRotationDays: 1
 
 k8s:
   appNamespace: "default" # Namespace where app will be running
