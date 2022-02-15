@@ -18,14 +18,14 @@
 
 package org.icgc_argo.workflow_raccoon.service;
 
-import java.util.Date;
+import java.time.ZonedDateTime;
 import java.util.HashMap;
 import java.util.List;
 import java.util.function.Function;
 import java.util.stream.Stream;
 import lombok.RequiredArgsConstructor;
 import lombok.val;
-import org.icgc_argo.workflow_raccoon.model.RunStateUpdateDto;
+import org.icgc_argo.workflow_raccoon.model.weblog.RunStateUpdate;
 import org.icgc_argo.workflow_raccoon.model.WesStates;
 import org.icgc_argo.workflow_raccoon.model.api.DryRunResponse;
 import org.icgc_argo.workflow_raccoon.model.kubernetes.ConfigMap;
@@ -43,9 +43,9 @@ public class RaccoonService {
   private final KubernetesService kubernetesService;
   private final RdpcService rdpcService;
 
-  public Mono<DryRunResponse> dryRun() {
+  public Mono<DryRunResponse> dryRunCleanup() {
     val kubeSummary = kubernetesService.getSummary();
-    val podRotation = new Date(); // TODO use properties
+    val podRotation = ZonedDateTime.now(); // TODO use properties
     val podsToRemove =
         resourceCleanupStream(kubeSummary.getRunPods(), RunPod::getAge, podRotation).count();
     val configMapToRemove =
@@ -61,7 +61,26 @@ public class RaccoonService {
                     .build());
   }
 
-  public Flux<RunStateUpdateDto> runsToUpdate(Flux<Run> activeRuns, List<RunPod> allRunPods) {
+  public Mono<Boolean> runCleanup() {
+      val kubeSummary = kubernetesService.getSummary();
+      val podRotation = ZonedDateTime.now(); // TODO use properties
+
+      // delete stale run pods
+      resourceCleanupStream(kubeSummary.getRunPods(), RunPod::getAge, podRotation)
+              .map(RunPod::getRunId)
+              .forEach(kubernetesService::deletePod);
+
+      // delete stale config maps
+      resourceCleanupStream(kubeSummary.getConfigMaps(), ConfigMap::getAge, podRotation)
+          .map(ConfigMap::getName)
+          .forEach(kubernetesService::deleteConfigMap);
+
+      //      runsToUpdate(rdpcService.getAlLActiveRuns(), kubeSummary.getRunPods())
+      //      .flatMap(rdpcService::weblog);
+      return Mono.empty();
+  }
+
+  public Flux<RunStateUpdate> runsToUpdate(Flux<Run> activeRuns, List<RunPod> allRunPods) {
     val kubeRunsLookUp = new HashMap<String, RunPod>();
     allRunPods.forEach(
         kubeRun -> {
@@ -73,10 +92,10 @@ public class RaccoonService {
 
     return activeRuns.flatMap(
         runningRun -> {
-          RunStateUpdateDto dto = null;
+          RunStateUpdate dto = null;
           if (!kubeRunsLookUp.containsKey(runningRun.getRunId())) {
             dto =
-                RunStateUpdateDto.builder()
+                RunStateUpdate.builder()
                     .runId(runningRun.getRunId())
                     .currentState(runningRun.getState())
                     .newState(WesStates.SYSTEM_ERROR)
@@ -86,11 +105,11 @@ public class RaccoonService {
           val kubeRun = kubeRunsLookUp.get(runningRun.getRunId());
           if (!kubeRun.getState().equals(runningRun.getState())) {
             dto =
-                RunStateUpdateDto.builder()
+                RunStateUpdate.builder()
                     .runId(runningRun.getRunId())
                     .currentState(runningRun.getState())
                     .newState(kubeRun.getState())
-                    .logs(kubeRun.getLogs())
+                    .logs(kubeRun.getLog())
                     .build();
           }
           return dto == null ? Mono.empty() : Mono.just(dto);
@@ -98,7 +117,7 @@ public class RaccoonService {
   }
 
   private <T> Stream<T> resourceCleanupStream(
-      List<T> allRunPods, Function<T, Date> dateFunction, Date rotationDate) {
-    return allRunPods.stream().filter(resource -> dateFunction.apply(resource).before(rotationDate));
+          List<T> allRunPods, Function<T, ZonedDateTime> dateFunction, ZonedDateTime rotationDate) {
+    return allRunPods.stream().filter(resource -> dateFunction.apply(resource).isEqual(rotationDate));
   }
 }

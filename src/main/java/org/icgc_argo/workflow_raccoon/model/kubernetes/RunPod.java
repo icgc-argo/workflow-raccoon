@@ -18,7 +18,8 @@
 
 package org.icgc_argo.workflow_raccoon.model.kubernetes;
 
-import java.util.Date;
+import java.time.ZonedDateTime;
+
 import lombok.Builder;
 import lombok.Value;
 import org.icgc_argo.workflow_raccoon.model.WesStates;
@@ -27,7 +28,7 @@ import org.icgc_argo.workflow_raccoon.model.WesStates;
 @Value
 public class RunPod {
   String runId;
-  Date age;
+  ZonedDateTime age;
   WesStates state;
-  String logs;
+  String log;
 }

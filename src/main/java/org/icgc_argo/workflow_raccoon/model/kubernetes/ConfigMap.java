@@ -18,6 +18,7 @@
 
 package org.icgc_argo.workflow_raccoon.model.kubernetes;
 
+import java.time.ZonedDateTime;
 import java.util.Date;
 import lombok.Builder;
 import lombok.Value;
@@ -26,5 +27,5 @@ import lombok.Value;
 @Value
 public class ConfigMap {
   String name;
-  Date age;
+  ZonedDateTime age;
 }

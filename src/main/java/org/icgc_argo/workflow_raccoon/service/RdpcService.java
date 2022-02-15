@@ -67,6 +67,10 @@ public class RdpcService {
     return getAllRunsWithState(WesStates.RUNNING);
   }
 
+  public Mono<Boolean> weblogState() {
+    return Mono.empty();
+  }
+
   public Flux<Run> getAllRunsWithState(@NonNull WesStates state) {
     return getActiveRunsInPage(0, state)
         .expand(

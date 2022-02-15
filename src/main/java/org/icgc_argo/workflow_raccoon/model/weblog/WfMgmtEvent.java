@@ -16,16 +16,16 @@
  * ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package org.icgc_argo.workflow_raccoon.model;
+package org.icgc_argo.workflow_raccoon.model.weblog;
 
-import lombok.Builder;
-import lombok.Value;
+import lombok.*;
+
+import static java.lang.String.format;
 
 @Value
 @Builder
-public class RunStateUpdateDto {
-  String runId;
-  WesStates currentState;
-  WesStates newState;
-  String logs;
+public class WfMgmtEvent {
+  @NonNull String runId;
+  @NonNull String event;
+  @NonNull String utcTime;
 }

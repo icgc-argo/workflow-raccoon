@@ -14,30 +14,19 @@
  * OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER
  * IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
  * ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- *
  */
 
-package org.icgc_argo.workflow_raccoon.controller;
+package org.icgc_argo.workflow_raccoon.model.weblog;
 
-import lombok.RequiredArgsConstructor;
-import org.icgc_argo.workflow_raccoon.model.api.ApiResponse;
-import org.icgc_argo.workflow_raccoon.model.api.DryRunResponse;
-import org.icgc_argo.workflow_raccoon.service.RaccoonService;
-import org.springframework.web.bind.annotation.RestController;
-import reactor.core.publisher.Mono;
+import lombok.Builder;
+import lombok.Value;
+import org.icgc_argo.workflow_raccoon.model.WesStates;
 
-@RestController
-@RequiredArgsConstructor
-public class ApiImpl implements ApiDef {
-  private final RaccoonService raccoonService;
-
-  @Override
-  public Mono<ApiResponse> run() {
-    return Mono.just(ApiResponse.builder().code(200).message("I don't do anything yet.").build());
-  }
-
-  @Override
-  public Mono<DryRunResponse> dryRun() {
-    return raccoonService.dryRunCleanup();
-  }
+@Value
+@Builder
+public class RunStateUpdate {
+  String runId;
+  WesStates currentState;
+  WesStates newState;
+  String logs;
 }

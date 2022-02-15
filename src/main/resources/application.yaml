@@ -18,7 +18,10 @@ k8s:
   trustCertificate: false
 
 rdpc:
-  url: https://api.rdpc-dev.cancercollaboratory.org/graphql
-  clientId: wfg
-  clientSecret: workflowgraph
-  tokenUrl: https://ego.dev.argo.cancercollaboratory.org/api/oauth/token
+  url: http://localhost:8081/graphql
+  clientId: raccoon
+  clientSecret: racconsecret
+  tokenUrl: http://localhost:8083/api/oauth/token
+
+weblog:
+  url:  http://localhost:8089

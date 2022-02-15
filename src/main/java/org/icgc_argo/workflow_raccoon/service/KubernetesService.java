@@ -18,6 +18,7 @@
 
 package org.icgc_argo.workflow_raccoon.service;
 
+import static java.time.ZonedDateTime.parse;
 import static java.util.stream.Collectors.toUnmodifiableList;
 import static org.icgc_argo.workflow_raccoon.model.WesStates.*;
 
@@ -25,11 +26,13 @@ import io.fabric8.kubernetes.api.model.Pod;
 import io.fabric8.kubernetes.client.ConfigBuilder;
 import io.fabric8.kubernetes.client.DefaultKubernetesClient;
 import io.fabric8.kubernetes.client.KubernetesClientException;
+
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
 import org.icgc_argo.workflow_raccoon.model.WesStates;
+import org.icgc_argo.workflow_raccoon.model.kubernetes.ConfigMap;
 import org.icgc_argo.workflow_raccoon.model.kubernetes.RunPod;
 import org.icgc_argo.workflow_raccoon.model.kubernetes.Summary;
 import org.icgc_argo.workflow_raccoon.properties.KubernetesProperties;
@@ -43,28 +46,60 @@ public class KubernetesService {
   private static final String SUCCEEDED = "SUCCEEDED";
   private static final String FAILED = "FAILED";
 
+  private static final String WORKFLOW_PARENT_POD_PREFIX = "wes-";
+  private static final String WORKFLOW_CHILD_POD_PREFIX = "nf-";
+  private static final String WORKFLOW_CONFIGMAP_PREFIX = "nf-config-";
+
+  private final KubernetesProperties properties;
   private final DefaultKubernetesClient client;
 
+
   public KubernetesService(KubernetesProperties properties) {
+    this.properties = properties;
     this.client = createKubernetesClient(properties);
   }
 
   public Summary getSummary() {
-    return Summary.builder().runPods(getCurrentRunPods()).configMaps(List.of()).build();
+    return Summary.builder().runPods(getCurrentRunPods()).configMaps(getCurrentRunConfigMaps()).build();
+  }
+
+  public Boolean deletePod(String podName) {
+    return client.pods().inNamespace(properties.getRunsNamespace()).withName(podName).delete();
+  }
+
+  public Boolean deleteConfigMap(String configMapName) {
+    return client.configMaps().inNamespace(properties.getRunsNamespace()).withName(configMapName).delete();
   }
 
   private List<RunPod> getCurrentRunPods() {
     return client.pods().list().getItems().stream()
-        .filter(pod -> pod.getMetadata().getName().startsWith("wf-"))
+        .filter(pod -> pod.getMetadata().getName().startsWith(WORKFLOW_PARENT_POD_PREFIX) ||
+                       pod.getMetadata().getName().startsWith(WORKFLOW_CHILD_POD_PREFIX))
         .map(
             pod ->
                 RunPod.builder()
                     .runId(pod.getMetadata().getName())
                     .state(getRunExecutorState(pod))
-                    .logs("TBD")
+                    .age(parse(pod.getStatus().getStartTime()))
+                    .log(getPodLog(pod.getMetadata().getName()))
                     .build())
         .collect(toUnmodifiableList());
   }
+
+  private String getPodLog(String podName) {
+    return client.pods().inNamespace(properties.getRunsNamespace()).withName(podName).getLog();
+  }
+
+  private List<ConfigMap> getCurrentRunConfigMaps() {
+    return client.configMaps().list().getItems().stream()
+            .filter(configMap -> configMap.getMetadata().getName().startsWith(WORKFLOW_CONFIGMAP_PREFIX))
+            .map(configMap -> ConfigMap.builder()
+                    .name(configMap.getMetadata().getName())
+                    .age(parse(configMap.getMetadata().getCreationTimestamp()))
+                    .build())
+            .collect(toUnmodifiableList());
+  }
+
 
   private WesStates getRunExecutorState(Pod pod) {
     if (pod.getStatus().getPhase().equalsIgnoreCase(RUNNING)) {
