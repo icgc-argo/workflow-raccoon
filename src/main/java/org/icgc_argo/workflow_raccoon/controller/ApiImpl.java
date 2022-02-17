@@ -19,25 +19,30 @@
 
 package org.icgc_argo.workflow_raccoon.controller;
 
-import org.icgc_argo.workflow_raccoon.model.ApiResponse;
-import org.icgc_argo.workflow_raccoon.model.DryRunResponse;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.icgc_argo.workflow_raccoon.model.MealPlan;
+import org.icgc_argo.workflow_raccoon.service.RaccoonService;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.RestController;
 import reactor.core.publisher.Mono;
 
+@Slf4j
 @RestController
+@RequiredArgsConstructor
 public class ApiImpl implements ApiDef {
+  private final RaccoonService raccoonService;
+
   @Override
-  public Mono<ApiResponse> run() {
-    return Mono.just(ApiResponse.builder().code(200).message("I don't do anything yet.").build());
+  public Mono<ResponseEntity<String>> run() {
+    raccoonService
+        .prepareAndExecuteMealPlan()
+        .subscribe(successful -> log.info("Async cleanup completed successfully=" + successful));
+    return Mono.just(ResponseEntity.ok("Raccoon started async cleanup!"));
   }
 
   @Override
-  public Mono<DryRunResponse> dryRun() {
-    return Mono.just(
-        DryRunResponse.builder()
-            .numJobsStuck(0)
-            .numPodsToCleanup(9)
-            .numSecretsToCleanup(0)
-            .build());
+  public Mono<MealPlan> dryRun() {
+    return raccoonService.prepareMealPlan();
   }
 }

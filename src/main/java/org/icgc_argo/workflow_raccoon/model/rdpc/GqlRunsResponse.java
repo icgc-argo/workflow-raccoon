@@ -14,20 +14,26 @@
  * OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER
  * IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
  * ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- *
  */
 
-package org.icgc_argo.workflow_raccoon;
+package org.icgc_argo.workflow_raccoon.model.rdpc;
 
-import org.springframework.boot.SpringApplication;
-import org.springframework.boot.autoconfigure.SpringBootApplication;
-import org.springframework.boot.context.properties.ConfigurationPropertiesScan;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 
-@SpringBootApplication
-@ConfigurationPropertiesScan("org.icgc_argo.workflow_raccoon.properties")
-public class WorkflowRaccoonApplication {
+@Data
+@NoArgsConstructor
+@JsonIgnoreProperties(ignoreUnknown = true)
+public class GqlRunsResponse {
+  GqlData data;
 
-  public static void main(String[] args) {
-    SpringApplication.run(WorkflowRaccoonApplication.class, args);
+  @Data
+  @NoArgsConstructor
+  @AllArgsConstructor
+  @JsonIgnoreProperties(ignoreUnknown = true)
+  public static class GqlData {
+    SearchResult<Run> runs;
   }
 }

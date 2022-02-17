@@ -1,5 +1,28 @@
 spring:
   application:
-    name: @project.name@
-    version: @project.version@
-    description: @project.description@
+    # take values from pom.xml
+    name: "@project.name@"
+    version: "@project.version@"
+    description: "@project.description@"
+
+server.port: 8090
+
+raccoon:
+  podRotationDays: 1
+  configMapRotationDays: 1
+
+k8s:
+  appNamespace: "default" # Namespace where app will be running
+  runsNamespace: "default" # Namespace where worklow resources will be
+  serviceAccount: "default"
+  masterUrl: "https://192.168.99.100:8443"
+  trustCertificate: false
+
+rdpc:
+  url: http://localhost:8081/graphql
+  clientId: raccoon
+  clientSecret: racconsecret
+  tokenUrl: http://localhost:8083/api/oauth/token
+
+weblog:
+  url:  http://localhost:8089

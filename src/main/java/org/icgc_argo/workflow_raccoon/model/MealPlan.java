@@ -14,17 +14,21 @@
  * OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER
  * IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
  * ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- *
  */
 
 package org.icgc_argo.workflow_raccoon.model;
 
+import java.util.List;
 import lombok.Builder;
 import lombok.Value;
+import org.icgc_argo.workflow_raccoon.model.kubernetes.ConfigMap;
+import org.icgc_argo.workflow_raccoon.model.kubernetes.RunPod;
+import org.icgc_argo.workflow_raccoon.model.weblog.RunStateUpdate;
 
 @Value
 @Builder
-public class ApiResponse {
-  Integer code;
-  String message;
+public class MealPlan {
+  List<RunStateUpdate> runUpdates;
+  List<ConfigMap> staleConfigMaps;
+  List<RunPod> staleRunPods;
 }

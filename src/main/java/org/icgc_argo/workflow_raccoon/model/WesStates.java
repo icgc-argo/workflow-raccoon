@@ -14,20 +14,39 @@
  * OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER
  * IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
  * ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- *
  */
 
-package org.icgc_argo.workflow_raccoon;
+package org.icgc_argo.workflow_raccoon.model;
 
-import org.springframework.boot.SpringApplication;
-import org.springframework.boot.autoconfigure.SpringBootApplication;
-import org.springframework.boot.context.properties.ConfigurationPropertiesScan;
+import lombok.Getter;
+import lombok.NonNull;
+import lombok.RequiredArgsConstructor;
 
-@SpringBootApplication
-@ConfigurationPropertiesScan("org.icgc_argo.workflow_raccoon.properties")
-public class WorkflowRaccoonApplication {
+/**
+ * ENUM of wes state from:
+ * https://github.com/ga4gh/workflow-execution-service-schemas/blob/c3b19854240c4fcbaf3483e22b19db0a918a7ee5/openapi/workflow_execution_service.swagger.yaml#L483
+ */
+@RequiredArgsConstructor
+public enum WesStates {
+  UNKNOWN("UNKNOWN"),
 
-  public static void main(String[] args) {
-    SpringApplication.run(WorkflowRaccoonApplication.class, args);
-  }
+  QUEUED("QUEUED"),
+
+  INITIALIZING("INITIALIZING"),
+
+  RUNNING("RUNNING"),
+
+  PAUSED("PAUSED"),
+
+  CANCELING("CANCELING"),
+
+  CANCELED("CANCELED"),
+
+  COMPLETE("COMPLETE"),
+
+  EXECUTOR_ERROR("EXECUTOR_ERROR"),
+
+  SYSTEM_ERROR("SYSTEM_ERROR");
+
+  @Getter @NonNull private final String value;
 }

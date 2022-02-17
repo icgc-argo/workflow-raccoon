@@ -14,20 +14,20 @@
  * OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER
  * IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
  * ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- *
  */
 
-package org.icgc_argo.workflow_raccoon;
+package org.icgc_argo.workflow_raccoon.model.kubernetes;
 
-import org.springframework.boot.SpringApplication;
-import org.springframework.boot.autoconfigure.SpringBootApplication;
-import org.springframework.boot.context.properties.ConfigurationPropertiesScan;
+import java.time.ZonedDateTime;
+import lombok.Builder;
+import lombok.Value;
+import org.icgc_argo.workflow_raccoon.model.WesStates;
 
-@SpringBootApplication
-@ConfigurationPropertiesScan("org.icgc_argo.workflow_raccoon.properties")
-public class WorkflowRaccoonApplication {
-
-  public static void main(String[] args) {
-    SpringApplication.run(WorkflowRaccoonApplication.class, args);
-  }
+@Builder
+@Value
+public class RunPod {
+  String runId;
+  ZonedDateTime age;
+  WesStates state;
+  String log;
 }

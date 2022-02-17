@@ -14,20 +14,21 @@
  * OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER
  * IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
  * ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- *
  */
 
-package org.icgc_argo.workflow_raccoon;
+package org.icgc_argo.workflow_raccoon.model.weblog;
 
-import org.springframework.boot.SpringApplication;
-import org.springframework.boot.autoconfigure.SpringBootApplication;
-import org.springframework.boot.context.properties.ConfigurationPropertiesScan;
+import lombok.NonNull;
+import lombok.RequiredArgsConstructor;
+import lombok.Value;
 
-@SpringBootApplication
-@ConfigurationPropertiesScan("org.icgc_argo.workflow_raccoon.properties")
-public class WorkflowRaccoonApplication {
-
-  public static void main(String[] args) {
-    SpringApplication.run(WorkflowRaccoonApplication.class, args);
-  }
+@Value
+@RequiredArgsConstructor
+public class NextflowEvent {
+  @NonNull String runId;
+  @NonNull String runName;
+  @NonNull String event;
+  @NonNull String utcTime;
+  @NonNull String log;
+  @NonNull Boolean success;
 }

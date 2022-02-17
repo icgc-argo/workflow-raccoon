@@ -1,7 +1,7 @@
 /*
  * Copyright (c) 2021 The Ontario Institute for Cancer Research. All rights reserved
  *
- * This program and the accompanying materials are made available under the terms of he GNU Affero General Public License v3.0.
+ * This program and the accompanying materials are made available under the terms of the GNU Affero General Public License v3.0.
  * You should have received a copy of the GNU Affero General Public License along with
  * this program. If not, see <http://www.gnu.org/licenses/>.
  *
@@ -14,20 +14,30 @@
  * OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER
  * IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
  * ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- *
  */
 
-package org.icgc_argo.workflow_raccoon;
+package org.icgc_argo.workflow_raccoon.utils;
 
-import org.springframework.boot.SpringApplication;
-import org.springframework.boot.autoconfigure.SpringBootApplication;
-import org.springframework.boot.context.properties.ConfigurationPropertiesScan;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import lombok.SneakyThrows;
+import lombok.experimental.UtilityClass;
 
-@SpringBootApplication
-@ConfigurationPropertiesScan("org.icgc_argo.workflow_raccoon.properties")
-public class WorkflowRaccoonApplication {
+@UtilityClass
+public class JacksonUtils {
+  private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
-  public static void main(String[] args) {
-    SpringApplication.run(WorkflowRaccoonApplication.class, args);
+  @SneakyThrows
+  public static String toJsonString(Object o) {
+    return OBJECT_MAPPER.writeValueAsString(o);
+  }
+
+  @SneakyThrows
+  public static <T> T convertValue(Object fromValue, Class<T> toValueType) {
+    return OBJECT_MAPPER.convertValue(fromValue, toValueType);
+  }
+
+  @SneakyThrows
+  public static <T> T readValue(String jsonString, Class<T> valueType) {
+    return OBJECT_MAPPER.readValue(jsonString, valueType);
   }
 }
