@@ -26,9 +26,7 @@ import org.springframework.boot.context.properties.ConstructorBinding;
 @ConstructorBinding
 @ConfigurationProperties("k8s")
 public class KubernetesProperties {
-  String appNamespace;
   String runsNamespace;
-  String serviceAccount;
   String masterUrl;
   Boolean trustCertificate;
 }

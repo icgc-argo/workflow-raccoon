@@ -25,7 +25,9 @@ import java.time.ZonedDateTime;
 import java.util.HashMap;
 import java.util.List;
 import java.util.function.Function;
+import javax.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import lombok.val;
 import org.icgc_argo.workflow_raccoon.model.MealPlan;
 import org.icgc_argo.workflow_raccoon.model.WesStates;
@@ -38,13 +40,19 @@ import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class RaccoonService {
   private final RaccoonProperties properties;
   private final KubernetesService kubernetesService;
-  private final RdpcService rdpcService;
-  private final WeblogService weblogService;
+  private final RdpcGatewayService rdpcGatewayService;
+  private final RelayWeblogService relayWeblogService;
+
+  @PostConstruct
+  public void postConstruct() {
+    log.info("RaccoonService is ready");
+  }
 
   public Mono<Boolean> prepareAndExecuteMealPlan() {
     return prepareMealPlan().flatMap(this::executeMealPlan);
@@ -60,7 +68,7 @@ public class RaccoonService {
     val staleRunPods = toCleanup(allRunPods, RunPod::getAge, podsBefore);
     val staleConfigMaps = toCleanup(configMaps, ConfigMap::getAge, configMapBefore);
 
-    return runsToUpdate(rdpcService.getAlLActiveRuns(), allRunPods)
+    return runsToUpdate(rdpcGatewayService.getAlLActiveRuns(), allRunPods)
         .collectList()
         .map(
             runUpdates ->
@@ -73,7 +81,8 @@ public class RaccoonService {
 
   private Mono<Boolean> executeMealPlan(MealPlan mealPlan) {
     val updateRuns =
-        Flux.fromIterable(mealPlan.getRunUpdates()).concatMap(weblogService::updateRunViaWeblog);
+        Flux.fromIterable(mealPlan.getRunUpdates())
+            .concatMap(relayWeblogService::updateRunViaWeblog);
 
     val deleteStaleRunPods =
         Flux.fromIterable(mealPlan.getStaleRunPods()).map(kubernetesService::deletePod);

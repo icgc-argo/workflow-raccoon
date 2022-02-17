@@ -52,6 +52,7 @@ public class KubernetesService {
   public KubernetesService(KubernetesProperties properties) {
     this.properties = properties;
     this.client = createKubernetesClient(properties);
+    log.info("KubernetesService is ready");
   }
 
   public Boolean deletePod(RunPod runPod) {

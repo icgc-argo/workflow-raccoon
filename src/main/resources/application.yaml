@@ -12,9 +12,7 @@ raccoon:
   configMapRotationDays: 1
 
 k8s:
-  appNamespace: "default" # Namespace where app will be running
   runsNamespace: "default" # Namespace where worklow resources will be
-  serviceAccount: "default"
   masterUrl: "https://192.168.99.100:8443"
   trustCertificate: false
 

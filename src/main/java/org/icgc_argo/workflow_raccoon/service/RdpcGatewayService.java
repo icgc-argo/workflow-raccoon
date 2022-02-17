@@ -22,6 +22,7 @@ import static org.springframework.security.oauth2.core.AuthorizationGrantType.CL
 
 import java.util.Map;
 import lombok.NonNull;
+import lombok.extern.slf4j.Slf4j;
 import lombok.val;
 import org.icgc_argo.workflow_raccoon.model.WesStates;
 import org.icgc_argo.workflow_raccoon.model.rdpc.GqlRunsResponse;
@@ -42,15 +43,16 @@ import reactor.core.publisher.Mono;
 import reactor.util.function.Tuple2;
 import reactor.util.function.Tuples;
 
+@Slf4j
 @Service
-public class RdpcService {
+public class RdpcGatewayService {
   private static final Integer DEFAULT_SIZE = 20;
   private static final String RESOURCE_ID_HEADER = "X-Resource-ID";
   private static final String OUATH_RESOURCE_ID = "rdpcOauth";
 
   private final WebClient webClient;
 
-  public RdpcService(RdpcProperties properties) {
+  public RdpcGatewayService(RdpcProperties properties) {
     val oauthFilter =
         createOauthFilter(
             properties.getTokenUrl(), properties.getClientId(), properties.getClientSecret());
@@ -61,6 +63,8 @@ public class RdpcService {
             .filter(oauthFilter)
             .defaultHeader(RESOURCE_ID_HEADER, OUATH_RESOURCE_ID)
             .build();
+
+    log.info("RdpcGatewayService is ready");
   }
 
   public Flux<Run> getAlLActiveRuns() {

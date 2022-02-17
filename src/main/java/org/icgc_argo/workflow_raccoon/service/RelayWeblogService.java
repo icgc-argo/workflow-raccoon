@@ -22,6 +22,7 @@ import static org.icgc_argo.workflow_raccoon.utils.JacksonUtils.toJsonString;
 
 import java.time.ZonedDateTime;
 import java.util.Objects;
+import javax.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
@@ -36,8 +37,13 @@ import reactor.core.publisher.Mono;
 @Slf4j
 @Service
 @RequiredArgsConstructor
-public class WeblogService {
+public class RelayWeblogService {
   private final WeblogProperties properties;
+
+  @PostConstruct
+  public void postConstruct() {
+    log.info("RelayWeblogService is ready");
+  }
 
   public Mono<Boolean> updateRunViaWeblog(RunStateUpdate dto) {
     val event =
