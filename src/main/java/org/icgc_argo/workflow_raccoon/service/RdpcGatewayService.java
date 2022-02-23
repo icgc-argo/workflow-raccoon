@@ -112,6 +112,8 @@ public class RdpcGatewayService {
             + "    }\n"
             + "    content {\n"
             + "      runId\n"
+            + "      sessionId\n"
+            + "      repository\n"
             + "      state\n"
             + "      startTime\n"
             + "    }\n"

@@ -79,7 +79,7 @@ public class KubernetesService {
             configMap ->
                 ConfigMap.builder()
                     .name(configMap.getMetadata().getName())
-                    .age(parse(configMap.getMetadata().getCreationTimestamp()))
+                    .age(parse(configMap.getMetadata().getCreationTimestamp()).toOffsetDateTime())
                     .build())
         .collect(toUnmodifiableList());
   }
@@ -95,7 +95,7 @@ public class KubernetesService {
                 RunPod.builder()
                     .runId(pod.getMetadata().getName())
                     .state(getRunExecutorState(pod))
-                    .age(parse(pod.getStatus().getStartTime()))
+                    .age(parse(pod.getStatus().getStartTime()).toOffsetDateTime())
                     .log(getPodLog(pod.getMetadata().getName()))
                     .build())
         .collect(toUnmodifiableList());

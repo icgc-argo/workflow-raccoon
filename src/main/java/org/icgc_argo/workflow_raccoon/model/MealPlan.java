@@ -23,7 +23,6 @@ import lombok.Builder;
 import lombok.Value;
 import org.icgc_argo.workflow_raccoon.model.kubernetes.ConfigMap;
 import org.icgc_argo.workflow_raccoon.model.kubernetes.RunPod;
-import org.icgc_argo.workflow_raccoon.model.weblog.RunStateUpdate;
 
 @Value
 @Builder

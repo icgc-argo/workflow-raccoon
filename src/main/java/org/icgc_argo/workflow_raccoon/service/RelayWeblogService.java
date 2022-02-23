@@ -20,13 +20,17 @@ package org.icgc_argo.workflow_raccoon.service;
 
 import static org.icgc_argo.workflow_raccoon.utils.JacksonUtils.toJsonString;
 
+import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
 import java.time.ZonedDateTime;
 import java.util.Objects;
 import javax.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
-import org.icgc_argo.workflow_raccoon.model.weblog.RunStateUpdate;
+import org.icgc_argo.workflow_raccoon.model.RunStateUpdate;
+import org.icgc_argo.workflow_raccoon.model.WesStates;
+import org.icgc_argo.workflow_raccoon.model.weblog.NextflowEvent;
 import org.icgc_argo.workflow_raccoon.model.weblog.WfMgmtEvent;
 import org.icgc_argo.workflow_raccoon.properties.WeblogProperties;
 import org.springframework.http.MediaType;
@@ -46,18 +50,31 @@ public class RelayWeblogService {
   }
 
   public Mono<Boolean> updateRunViaWeblog(RunStateUpdate dto) {
-    val event =
-        WfMgmtEvent.builder()
-            .runId(dto.getRunId())
-            .event(dto.getNewState().getValue())
-            .utcTime(String.valueOf(ZonedDateTime.now().toEpochSecond()))
-            .build();
-
-    return sendHttpMessage(event);
+    Object event;
+    if (dto.getNewState().equals(WesStates.EXECUTOR_ERROR)) {
+      event =
+          new NextflowEvent(
+              dto.getRunId(),
+              dto.getSessionId(),
+              "ERROR",
+              OffsetDateTime.now(ZoneOffset.UTC),
+              dto.getLogs(),
+              false,
+              dto.getWorkflowUrl());
+    } else {
+      event =
+          WfMgmtEvent.builder()
+              .runId(dto.getRunId())
+              .workflowUrl(dto.getWorkflowUrl())
+              .event(dto.getNewState().getValue())
+              .utcTime(String.valueOf(ZonedDateTime.now().toEpochSecond()))
+              .build();
+    }
+    return sendHttpMessage(event).log("WeblogService");
   }
 
-  private Mono<Boolean> sendHttpMessage(WfMgmtEvent wfMgmtEvent) {
-    val jsonStr = toJsonString(wfMgmtEvent);
+  private Mono<Boolean> sendHttpMessage(Object obj) {
+    val jsonStr = toJsonString(obj);
     return WebClient.create(properties.getUrl())
         .post()
         .contentType(MediaType.APPLICATION_JSON)
@@ -73,6 +90,7 @@ public class RelayWeblogService {
               }
               log.debug("Message sent to weblog: " + jsonStr);
               return Mono.just(res.getBody());
-            });
+            })
+        .log("WeblogService");
   }
 }

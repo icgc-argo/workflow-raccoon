@@ -27,5 +27,6 @@ import lombok.Value;
 public class WfMgmtEvent {
   @NonNull String runId;
   @NonNull String event;
+  @NonNull String workflowUrl;
   @NonNull String utcTime;
 }

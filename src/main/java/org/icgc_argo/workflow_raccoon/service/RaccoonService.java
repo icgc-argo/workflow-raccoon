@@ -18,10 +18,10 @@
 
 package org.icgc_argo.workflow_raccoon.service;
 
-import static java.time.ZonedDateTime.now;
+import static java.time.OffsetDateTime.now;
 import static java.util.stream.Collectors.toUnmodifiableList;
 
-import java.time.ZonedDateTime;
+import java.time.OffsetDateTime;
 import java.util.HashMap;
 import java.util.List;
 import java.util.function.Function;
@@ -30,11 +30,11 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
 import org.icgc_argo.workflow_raccoon.model.MealPlan;
+import org.icgc_argo.workflow_raccoon.model.RunStateUpdate;
 import org.icgc_argo.workflow_raccoon.model.WesStates;
 import org.icgc_argo.workflow_raccoon.model.kubernetes.ConfigMap;
 import org.icgc_argo.workflow_raccoon.model.kubernetes.RunPod;
 import org.icgc_argo.workflow_raccoon.model.rdpc.Run;
-import org.icgc_argo.workflow_raccoon.model.weblog.RunStateUpdate;
 import org.icgc_argo.workflow_raccoon.properties.RaccoonProperties;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
@@ -55,7 +55,7 @@ public class RaccoonService {
   }
 
   public Mono<Boolean> prepareAndExecuteMealPlan() {
-    return prepareMealPlan().flatMap(this::executeMealPlan);
+    return prepareMealPlan().flatMap(this::executeMealPlan).log("RaccoonService");
   }
 
   public Mono<MealPlan> prepareMealPlan() {
@@ -92,11 +92,11 @@ public class RaccoonService {
 
     return Flux.concat(updateRuns, deleteStaleRunPods, deleteStaleConfigMaps)
         .count() // to make sure all elements in flux complete
-        .then(Mono.just(true))
+        .map(count -> count > 0)
         .onErrorReturn(false);
   }
 
-  private Flux<RunStateUpdate> runsToUpdate(Flux<Run> activeRuns, List<RunPod> allRunPods) {
+  private Flux<RunStateUpdate> runsToUpdate(Flux<Run> rdpcRuns, List<RunPod> allRunPods) {
     val kubeRunsLookUp = new HashMap<String, RunPod>();
     allRunPods.forEach(
         kubeRun -> {
@@ -106,37 +106,30 @@ public class RaccoonService {
           kubeRunsLookUp.put(kubeRun.getRunId(), kubeRun);
         });
 
-    return activeRuns.flatMap(
-        runningRun -> {
-          RunStateUpdate dto = null;
-          if (!kubeRunsLookUp.containsKey(runningRun.getRunId())) {
-            dto =
+    return rdpcRuns.flatMap(
+        rdpcRun -> {
+          val kubeRun = kubeRunsLookUp.get(rdpcRun.getRunId());
+          if (kubeRun == null || !kubeRun.getState().equals(rdpcRun.getState())) {
+            val builder =
                 RunStateUpdate.builder()
-                    .runId(runningRun.getRunId())
-                    .currentState(runningRun.getState())
-                    .newState(WesStates.SYSTEM_ERROR)
-                    .logs("")
-                    .build();
-          } else {
-            val kubeRun = kubeRunsLookUp.get(runningRun.getRunId());
-            if (!kubeRun.getState().equals(runningRun.getState())) {
-              dto =
-                  RunStateUpdate.builder()
-                      .runId(runningRun.getRunId())
-                      .currentState(runningRun.getState())
-                      .newState(kubeRun.getState())
-                      .logs(kubeRun.getLog())
-                      .build();
+                    .runId(rdpcRun.getRunId())
+                    .currentState(rdpcRun.getState())
+                    .sessionId(rdpcRun.getSessionId());
+            if (kubeRun != null) {
+              builder.newState(kubeRun.getState()).logs(kubeRun.getLog());
+            } else {
+              builder.newState(WesStates.SYSTEM_ERROR).logs("");
             }
+            return Mono.just(builder.build());
           }
-          return dto == null ? Mono.empty() : Mono.just(dto);
+          return Mono.empty();
         });
   }
 
   private <T> List<T> toCleanup(
       List<T> resources,
-      Function<T, ZonedDateTime> dateGetterFunction,
-      ZonedDateTime filterBeforeDate) {
+      Function<T, OffsetDateTime> dateGetterFunction,
+      OffsetDateTime filterBeforeDate) {
     return resources.stream()
         .filter(resource -> dateGetterFunction.apply(resource).isBefore(filterBeforeDate))
         .collect(toUnmodifiableList());
