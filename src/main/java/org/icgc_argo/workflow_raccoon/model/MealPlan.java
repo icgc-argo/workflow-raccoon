@@ -23,7 +23,6 @@ import lombok.Builder;
 import lombok.Value;
 import org.icgc_argo.workflow_raccoon.model.kubernetes.ConfigMap;
 import org.icgc_argo.workflow_raccoon.model.kubernetes.RunPod;
-import org.icgc_argo.workflow_raccoon.model.weblog.RunStateUpdate;
 
 @Value
 @Builder
@@ -31,4 +30,12 @@ public class MealPlan {
   List<RunStateUpdate> runUpdates;
   List<ConfigMap> staleConfigMaps;
   List<RunPod> staleRunPods;
+
+  public long getTotalCount() {
+    return toLong(runUpdates.size() + staleConfigMaps.size() + staleRunPods.size());
+  }
+
+  private static long toLong(int a) {
+    return Integer.valueOf(a).longValue();
+  }
 }

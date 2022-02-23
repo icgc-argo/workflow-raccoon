@@ -30,14 +30,4 @@ public class JacksonUtils {
   public static String toJsonString(Object o) {
     return OBJECT_MAPPER.writeValueAsString(o);
   }
-
-  @SneakyThrows
-  public static <T> T convertValue(Object fromValue, Class<T> toValueType) {
-    return OBJECT_MAPPER.convertValue(fromValue, toValueType);
-  }
-
-  @SneakyThrows
-  public static <T> T readValue(String jsonString, Class<T> valueType) {
-    return OBJECT_MAPPER.readValue(jsonString, valueType);
-  }
 }

@@ -28,6 +28,8 @@ import org.icgc_argo.workflow_raccoon.model.WesStates;
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class Run {
   String runId;
+  String sessionId;
+  String repository;
   WesStates state;
   String startTime;
 }

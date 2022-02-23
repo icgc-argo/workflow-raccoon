@@ -8,8 +8,10 @@ spring:
 server.port: 8090
 
 raccoon:
-  podRotationDays: 1
-  configMapRotationDays: 1
+  podRotationDays: -1 # pods older than this should be deleted, -1 disables it
+  configMapRotationDays: -1 # configMaps older than this should be deleted, -1 disables it
+  kubeCleanUpDelaySec: 1 # delay between cleanup requests to kubernetes api
+  relayWeblogDelaySec: 1 # delay between event updates to relay weblog
 
 k8s:
   runsNamespace: "default" # Namespace where worklow resources will be

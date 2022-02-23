@@ -16,16 +16,17 @@
  * ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package org.icgc_argo.workflow_raccoon.model.weblog;
+package org.icgc_argo.workflow_raccoon.model;
 
 import lombok.Builder;
 import lombok.Value;
-import org.icgc_argo.workflow_raccoon.model.WesStates;
 
 @Value
 @Builder
 public class RunStateUpdate {
   String runId;
+  String sessionId;
+  String workflowUrl;
   WesStates currentState;
   WesStates newState;
   String logs;

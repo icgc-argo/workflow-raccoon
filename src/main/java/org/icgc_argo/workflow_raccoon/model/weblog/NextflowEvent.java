@@ -18,17 +18,51 @@
 
 package org.icgc_argo.workflow_raccoon.model.weblog;
 
+import java.time.OffsetDateTime;
+import java.time.format.DateTimeFormatter;
+import java.util.Map;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 import lombok.Value;
+import lombok.val;
 
 @Value
-@RequiredArgsConstructor
 public class NextflowEvent {
-  @NonNull String runId;
-  @NonNull String runName;
+  @NonNull String runName; // Rdpc.Run.runId is runName
+  @NonNull String runId; // Rdpc.Run.sessionId is runId
   @NonNull String event;
   @NonNull String utcTime;
-  @NonNull String log;
-  @NonNull Boolean success;
+  @NonNull Metadata metadata;
+
+  public NextflowEvent(
+      @NonNull String runName,
+      @NonNull String runId,
+      @NonNull String event,
+      @NonNull OffsetDateTime completeTime,
+      @NonNull String errorReport,
+      @NonNull Boolean success,
+      @NonNull String repository) {
+    this.runName = runName;
+    this.runId = runId;
+    this.event = event;
+    this.utcTime = completeTime.format(DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss'Z'"));
+    val workflow = new Workflow(errorReport, success, completeTime, repository);
+    this.metadata = new Metadata(workflow, Map.of());
+  }
+
+  @Value
+  @RequiredArgsConstructor
+  public static class Metadata {
+    @NonNull Workflow workflow;
+    @NonNull Map<String, Object> parameters;
+  }
+
+  @Value
+  @RequiredArgsConstructor
+  public static class Workflow {
+    @NonNull String errorReport;
+    @NonNull Boolean success;
+    @NonNull OffsetDateTime complete;
+    @NonNull String repository;
+  }
 }

@@ -28,4 +28,6 @@ import org.springframework.boot.context.properties.ConstructorBinding;
 public class RaccoonProperties {
   Integer podRotationDays;
   Integer configMapRotationDays;
+  Integer kubeCleanUpDelaySec;
+  Integer relayWeblogDelaySec;
 }
