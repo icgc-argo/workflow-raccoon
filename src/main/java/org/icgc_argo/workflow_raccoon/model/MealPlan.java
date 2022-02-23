@@ -30,4 +30,12 @@ public class MealPlan {
   List<RunStateUpdate> runUpdates;
   List<ConfigMap> staleConfigMaps;
   List<RunPod> staleRunPods;
+
+  public long getTotalOperation() {
+    return toLong(runUpdates.size() + staleConfigMaps.size() + staleRunPods.size());
+  }
+
+  private static long toLong(int a) {
+    return Integer.valueOf(a).longValue();
+  }
 }

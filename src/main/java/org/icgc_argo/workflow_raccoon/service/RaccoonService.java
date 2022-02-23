@@ -21,6 +21,7 @@ package org.icgc_argo.workflow_raccoon.service;
 import static java.time.OffsetDateTime.now;
 import static java.util.stream.Collectors.toUnmodifiableList;
 
+import java.time.Duration;
 import java.time.OffsetDateTime;
 import java.util.HashMap;
 import java.util.List;
@@ -62,11 +63,9 @@ public class RaccoonService {
     val allRunPods = kubernetesService.getCurrentRunPods();
     val configMaps = kubernetesService.getCurrentRunConfigMaps();
 
-    val podsBefore = now().minusDays(properties.getPodRotationDays().longValue());
-    val configMapBefore = now().minusDays(properties.getConfigMapRotationDays().longValue());
-
-    val staleRunPods = toCleanup(allRunPods, RunPod::getAge, podsBefore);
-    val staleConfigMaps = toCleanup(configMaps, ConfigMap::getAge, configMapBefore);
+    val staleRunPods = toCleanup(allRunPods, RunPod::getAge, properties.getPodRotationDays());
+    val staleConfigMaps =
+        toCleanup(configMaps, ConfigMap::getAge, properties.getConfigMapRotationDays());
 
     return runsToUpdate(rdpcGatewayService.getAlLActiveRuns(), allRunPods)
         .collectList()
@@ -82,17 +81,25 @@ public class RaccoonService {
   private Mono<Boolean> executeMealPlan(MealPlan mealPlan) {
     val updateRuns =
         Flux.fromIterable(mealPlan.getRunUpdates())
-            .concatMap(relayWeblogService::updateRunViaWeblog);
+            .delayElements(Duration.ofSeconds(properties.getRelayWeblogDelaySec()))
+            .concatMap(relayWeblogService::updateRunViaWeblog)
+            .log("updateRuns");
 
     val deleteStaleRunPods =
-        Flux.fromIterable(mealPlan.getStaleRunPods()).map(kubernetesService::deletePod);
+        Flux.fromIterable(mealPlan.getStaleRunPods())
+            .delayElements(Duration.ofSeconds(properties.getKubeCleanUpDelaySec()))
+            .map(kubernetesService::deletePod)
+            .log("deleteStaleRunPods");
 
     val deleteStaleConfigMaps =
-        Flux.fromIterable(mealPlan.getStaleConfigMaps()).map(kubernetesService::deleteConfigMap);
+        Flux.fromIterable(mealPlan.getStaleConfigMaps())
+            .delayElements(Duration.ofSeconds(properties.getKubeCleanUpDelaySec()))
+            .map(kubernetesService::deleteConfigMap)
+            .log("deleteStaleConfigMaps");
 
     return Flux.concat(updateRuns, deleteStaleRunPods, deleteStaleConfigMaps)
         .count() // to make sure all elements in flux complete
-        .map(count -> count > 0)
+        .map(count -> count == mealPlan.getTotalOperation())
         .onErrorReturn(false);
   }
 
@@ -127,11 +134,13 @@ public class RaccoonService {
   }
 
   private <T> List<T> toCleanup(
-      List<T> resources,
-      Function<T, OffsetDateTime> dateGetterFunction,
-      OffsetDateTime filterBeforeDate) {
+      List<T> resources, Function<T, OffsetDateTime> dateGetterFunction, Integer rotationDays) {
+    if (rotationDays < 0) {
+      return List.of();
+    }
+    val rotationTime = now().minusDays(rotationDays.longValue());
     return resources.stream()
-        .filter(resource -> dateGetterFunction.apply(resource).isBefore(filterBeforeDate))
+        .filter(resource -> dateGetterFunction.apply(resource).isBefore(rotationTime))
         .collect(toUnmodifiableList());
   }
 }
