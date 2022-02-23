@@ -99,7 +99,7 @@ public class RaccoonService {
 
     return Flux.concat(updateRuns, deleteStaleRunPods, deleteStaleConfigMaps)
         .count() // to make sure all elements in flux complete
-        .map(count -> count == mealPlan.getTotalOperation())
+        .map(count -> count == mealPlan.getTotalCount())
         .onErrorReturn(false);
   }
 

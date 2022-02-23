@@ -49,24 +49,24 @@ public class RelayWeblogService {
     log.info("RelayWeblogService is ready");
   }
 
-  public Mono<Boolean> updateRunViaWeblog(RunStateUpdate dto) {
+  public Mono<Boolean> updateRunViaWeblog(RunStateUpdate runStateUpdate) {
     Object event;
-    if (dto.getNewState().equals(WesStates.EXECUTOR_ERROR)) {
+    if (runStateUpdate.getNewState().equals(WesStates.EXECUTOR_ERROR)) {
       event =
           new NextflowEvent(
-              dto.getRunId(),
-              dto.getSessionId(),
+              runStateUpdate.getRunId(),
+              runStateUpdate.getSessionId(),
               "ERROR",
               OffsetDateTime.now(ZoneOffset.UTC),
-              dto.getLogs(),
+              runStateUpdate.getLogs(),
               false,
-              dto.getWorkflowUrl());
+              runStateUpdate.getWorkflowUrl());
     } else {
       event =
           WfMgmtEvent.builder()
-              .runId(dto.getRunId())
-              .workflowUrl(dto.getWorkflowUrl())
-              .event(dto.getNewState().getValue())
+              .runId(runStateUpdate.getRunId())
+              .workflowUrl(runStateUpdate.getWorkflowUrl())
+              .event(runStateUpdate.getNewState().getValue())
               .utcTime(String.valueOf(ZonedDateTime.now().toEpochSecond()))
               .build();
     }

@@ -31,7 +31,7 @@ public class MealPlan {
   List<ConfigMap> staleConfigMaps;
   List<RunPod> staleRunPods;
 
-  public long getTotalOperation() {
+  public long getTotalCount() {
     return toLong(runUpdates.size() + staleConfigMaps.size() + staleRunPods.size());
   }
 
