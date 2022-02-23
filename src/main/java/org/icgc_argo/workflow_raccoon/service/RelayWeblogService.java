@@ -22,7 +22,6 @@ import static org.icgc_argo.workflow_raccoon.utils.JacksonUtils.toJsonString;
 
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
-import java.time.ZonedDateTime;
 import java.util.Objects;
 import javax.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
@@ -67,7 +66,7 @@ public class RelayWeblogService {
               .runId(runStateUpdate.getRunId())
               .workflowUrl(runStateUpdate.getWorkflowUrl())
               .event(runStateUpdate.getNewState().getValue())
-              .utcTime(String.valueOf(ZonedDateTime.now().toEpochSecond()))
+              .utcTime(OffsetDateTime.now(ZoneOffset.UTC))
               .build();
     }
     return sendHttpMessage(event).log("WeblogService");

@@ -18,6 +18,8 @@
 
 package org.icgc_argo.workflow_raccoon.model.weblog;
 
+import java.time.OffsetDateTime;
+import java.time.format.DateTimeFormatter;
 import lombok.Builder;
 import lombok.NonNull;
 import lombok.Value;
@@ -28,5 +30,9 @@ public class WfMgmtEvent {
   @NonNull String runId;
   @NonNull String event;
   @NonNull String workflowUrl;
-  @NonNull String utcTime;
+  @NonNull OffsetDateTime utcTime;
+
+  public String getUtcTime() {
+    return utcTime.format(DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss'Z'"));
+  }
 }
