@@ -127,6 +127,7 @@ public class RaccoonService {
             } else {
               builder.newState(WesStates.SYSTEM_ERROR).logs("");
             }
+            builder.workflowUrl(rdpcRun.getRepository());
             return Mono.just(builder.build());
           }
           return Mono.empty();

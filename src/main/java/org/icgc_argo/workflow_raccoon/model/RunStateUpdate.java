@@ -19,15 +19,16 @@
 package org.icgc_argo.workflow_raccoon.model;
 
 import lombok.Builder;
+import lombok.NonNull;
 import lombok.Value;
 
 @Value
 @Builder
 public class RunStateUpdate {
-  String runId;
-  String sessionId;
-  String workflowUrl;
-  WesStates currentState;
-  WesStates newState;
-  String logs;
+  @NonNull String runId;
+  @NonNull String sessionId;
+  @NonNull String workflowUrl;
+  @NonNull WesStates currentState;
+  @NonNull WesStates newState;
+  @NonNull String logs;
 }
