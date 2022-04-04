@@ -30,4 +30,5 @@ public class RdpcProperties {
   String clientId;
   String clientSecret;
   String tokenUrl;
+  Integer filterStartedBeforeDays;
 }

@@ -55,21 +55,37 @@ public class KubernetesService {
   }
 
   public Boolean deletePod(RunPod runPod) {
-    log.debug("Trying to remove pod {}", runPod.getRunId());
-    return client
-        .pods()
-        .inNamespace(properties.getRunsNamespace())
-        .withName(runPod.getRunId())
-        .delete();
+    log.info("Trying to remove pod {}", runPod.getRunId());
+    val deleted =
+        client
+            .pods()
+            .inNamespace(properties.getRunsNamespace())
+            .withName(runPod.getRunId())
+            .delete();
+    if (deleted) {
+      log.info("Deleted pod {}", runPod.getRunId());
+    } else {
+      log.info("Failed to delete pod {}", runPod.getRunId());
+    }
+    return deleted;
   }
 
   public Boolean deleteConfigMap(ConfigMap configMap) {
-    log.debug("Trying to remove config map {}", configMap.getName());
-    return client
-        .configMaps()
-        .inNamespace(properties.getRunsNamespace())
-        .withName(configMap.getName())
-        .delete();
+    log.info("Trying to remove config map {}", configMap.getName());
+
+    val deleted =
+        client
+            .configMaps()
+            .inNamespace(properties.getRunsNamespace())
+            .withName(configMap.getName())
+            .delete();
+
+    if (deleted) {
+      log.info("Deleted config map {}", configMap.getName());
+    } else {
+      log.info("Failed to delete config map {}", configMap.getName());
+    }
+    return deleted;
   }
 
   public List<ConfigMap> getCurrentRunConfigMaps() {

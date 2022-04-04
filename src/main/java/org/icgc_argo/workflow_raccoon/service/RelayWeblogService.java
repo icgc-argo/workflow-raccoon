@@ -49,7 +49,7 @@ public class RelayWeblogService {
   }
 
   public Mono<Boolean> updateRunViaWeblog(ActiveToInactiveRunUpdate activeToInactiveRunUpdate) {
-    log.debug(
+    log.info(
         "Trying to update run {} from {} to {}",
         activeToInactiveRunUpdate.getRunId(),
         activeToInactiveRunUpdate.getCurrentState(),
@@ -76,7 +76,23 @@ public class RelayWeblogService {
               .utcTime(OffsetDateTime.now(ZoneOffset.UTC))
               .build();
     }
-    return sendHttpMessage(event);
+    return sendHttpMessage(event)
+        .doOnNext(
+            success -> {
+              if (success) {
+                log.info(
+                    "Message sent to weblog to update run {} from {} to {}",
+                    activeToInactiveRunUpdate.getRunId(),
+                    activeToInactiveRunUpdate.getCurrentState(),
+                    activeToInactiveRunUpdate.getNewState());
+              } else {
+                log.info(
+                    "Failed to send message to weblog to update run {} from {} to {}",
+                    activeToInactiveRunUpdate.getRunId(),
+                    activeToInactiveRunUpdate.getCurrentState(),
+                    activeToInactiveRunUpdate.getNewState());
+              }
+            });
   }
 
   private Mono<Boolean> sendHttpMessage(Object obj) {
@@ -91,10 +107,10 @@ public class RelayWeblogService {
             res -> {
               // Don't want to proceed with stream if response from weblog is bad, so throw error
               if (!res.getStatusCode().is2xxSuccessful() || !Objects.equals(res.getBody(), true)) {
-                log.info("*** Failed to send event to weblog! ***");
+                log.debug("*** Failed to send event to weblog! ***");
                 return Mono.error(new Exception("Failed to send event to weblog!"));
               }
-              log.info("Message sent to weblog: " + jsonStr);
+              log.debug("Message sent to weblog: " + jsonStr);
               return Mono.just(res.getBody());
             });
   }

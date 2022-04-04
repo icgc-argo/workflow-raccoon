@@ -23,6 +23,7 @@ rdpc:
   clientId: raccoon
   clientSecret: racconsecret
   tokenUrl: http://localhost:8083/api/oauth/token
+  filterStartedBeforeDays: 14 # filter applied to fetch runs started before x days
 
 weblog:
   url:  http://localhost:8089
