@@ -27,7 +27,7 @@ import javax.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
-import org.icgc_argo.workflow_raccoon.model.RunStateUpdate;
+import org.icgc_argo.workflow_raccoon.model.ActiveToInactiveRunUpdate;
 import org.icgc_argo.workflow_raccoon.model.WesStates;
 import org.icgc_argo.workflow_raccoon.model.weblog.NextflowEvent;
 import org.icgc_argo.workflow_raccoon.model.weblog.WfMgmtEvent;
@@ -48,28 +48,35 @@ public class RelayWeblogService {
     log.info("RelayWeblogService is ready");
   }
 
-  public Mono<Boolean> updateRunViaWeblog(RunStateUpdate runStateUpdate) {
+  public Mono<Boolean> updateRunViaWeblog(ActiveToInactiveRunUpdate activeToInactiveRunUpdate) {
+    log.debug(
+        "Trying to update run {} from {} to {}",
+        activeToInactiveRunUpdate.getRunId(),
+        activeToInactiveRunUpdate.getCurrentState(),
+        activeToInactiveRunUpdate.getNewState());
     Object event;
-    if (runStateUpdate.getNewState().equals(WesStates.EXECUTOR_ERROR)) {
+    if (activeToInactiveRunUpdate.getNewState().equals(WesStates.EXECUTOR_ERROR)) {
+      // executor error events need to be sent via a NextflowEvent
       event =
           new NextflowEvent(
-              runStateUpdate.getRunId(),
-              runStateUpdate.getSessionId(),
+              activeToInactiveRunUpdate.getRunId(),
+              activeToInactiveRunUpdate.getSessionId(),
               "ERROR",
-              OffsetDateTime.now(ZoneOffset.UTC),
-              runStateUpdate.getLogs(),
+              activeToInactiveRunUpdate.getStartTime(),
+              activeToInactiveRunUpdate.getCompleteTime(),
+              activeToInactiveRunUpdate.getLogs(),
               false,
-              runStateUpdate.getWorkflowUrl());
+              activeToInactiveRunUpdate.getWorkflowUrl());
     } else {
       event =
           WfMgmtEvent.builder()
-              .runId(runStateUpdate.getRunId())
-              .workflowUrl(runStateUpdate.getWorkflowUrl())
-              .event(runStateUpdate.getNewState().getValue())
+              .runId(activeToInactiveRunUpdate.getRunId())
+              .workflowUrl(activeToInactiveRunUpdate.getWorkflowUrl())
+              .event(activeToInactiveRunUpdate.getNewState().getValue())
               .utcTime(OffsetDateTime.now(ZoneOffset.UTC))
               .build();
     }
-    return sendHttpMessage(event).log("WeblogService");
+    return sendHttpMessage(event);
   }
 
   private Mono<Boolean> sendHttpMessage(Object obj) {
@@ -87,9 +94,8 @@ public class RelayWeblogService {
                 log.info("*** Failed to send event to weblog! ***");
                 return Mono.error(new Exception("Failed to send event to weblog!"));
               }
-              log.debug("Message sent to weblog: " + jsonStr);
+              log.info("Message sent to weblog: " + jsonStr);
               return Mono.just(res.getBody());
-            })
-        .log("WeblogService");
+            });
   }
 }

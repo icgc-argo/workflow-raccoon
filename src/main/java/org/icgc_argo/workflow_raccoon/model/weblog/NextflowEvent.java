@@ -38,6 +38,7 @@ public class NextflowEvent {
       @NonNull String runName,
       @NonNull String runId,
       @NonNull String event,
+      @NonNull OffsetDateTime startTime,
       @NonNull OffsetDateTime completeTime,
       @NonNull String errorReport,
       @NonNull Boolean success,
@@ -46,7 +47,7 @@ public class NextflowEvent {
     this.runId = runId;
     this.event = event;
     this.utcTime = completeTime.format(DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss'Z'"));
-    val workflow = new Workflow(errorReport, success, completeTime, repository);
+    val workflow = new Workflow(errorReport, success, startTime, completeTime, repository);
     this.metadata = new Metadata(workflow, Map.of());
   }
 
@@ -62,6 +63,7 @@ public class NextflowEvent {
   public static class Workflow {
     @NonNull String errorReport;
     @NonNull Boolean success;
+    @NonNull OffsetDateTime start;
     @NonNull OffsetDateTime complete;
     @NonNull String repository;
   }

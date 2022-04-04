@@ -68,7 +68,11 @@ public class RdpcGatewayService {
   }
 
   public Flux<Run> getAlLActiveRuns() {
-    return getAllRunsWithState(WesStates.RUNNING);
+    return Flux.concat(
+        getAllRunsWithState(WesStates.RUNNING),
+        getAllRunsWithState(WesStates.QUEUED),
+        getAllRunsWithState(WesStates.CANCELING),
+        getAllRunsWithState(WesStates.INITIALIZING));
   }
 
   private Flux<Run> getAllRunsWithState(@NonNull WesStates state) {
@@ -87,11 +91,11 @@ public class RdpcGatewayService {
 
   private Mono<Tuple2<Integer, GqlRunsResponse>> getActiveRunsInPage(
       Integer page, WesStates state) {
-    return getActiveRunsFrom(page * DEFAULT_SIZE, DEFAULT_SIZE, state)
+    return getRunsFrom(page * DEFAULT_SIZE, DEFAULT_SIZE, state)
         .map(gqlRunsResponse -> Tuples.of(page, gqlRunsResponse));
   }
 
-  private Mono<GqlRunsResponse> getActiveRunsFrom(Integer from, Integer size, WesStates state) {
+  private Mono<GqlRunsResponse> getRunsFrom(Integer from, Integer size, WesStates state) {
     val body = createBody(from, size, state);
     return webClient
         .post()
@@ -99,8 +103,7 @@ public class RdpcGatewayService {
         .contentType(MediaType.APPLICATION_JSON)
         .bodyValue(body)
         .retrieve()
-        .bodyToMono(GqlRunsResponse.class)
-        .log("RdpcService");
+        .bodyToMono(GqlRunsResponse.class);
   }
 
   private Map<String, Object> createBody(Integer from, Integer size, WesStates state) {

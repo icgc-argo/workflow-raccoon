@@ -20,7 +20,6 @@ package org.icgc_argo.workflow_raccoon.service;
 
 import static java.time.ZonedDateTime.parse;
 import static java.util.stream.Collectors.toUnmodifiableList;
-import static org.icgc_argo.workflow_raccoon.model.WesStates.*;
 
 import io.fabric8.kubernetes.api.model.Pod;
 import io.fabric8.kubernetes.client.ConfigBuilder;
@@ -56,6 +55,7 @@ public class KubernetesService {
   }
 
   public Boolean deletePod(RunPod runPod) {
+    log.debug("Trying to remove pod {}", runPod.getRunId());
     return client
         .pods()
         .inNamespace(properties.getRunsNamespace())
@@ -64,6 +64,7 @@ public class KubernetesService {
   }
 
   public Boolean deleteConfigMap(ConfigMap configMap) {
+    log.debug("Trying to remove config map {}", configMap.getName());
     return client
         .configMaps()
         .inNamespace(properties.getRunsNamespace())
@@ -109,11 +110,11 @@ public class KubernetesService {
     if (pod.getStatus().getPhase().equalsIgnoreCase(RUNNING)) {
       return WesStates.RUNNING;
     } else if (pod.getStatus().getPhase().equalsIgnoreCase(FAILED)) {
-      return EXECUTOR_ERROR;
+      return WesStates.EXECUTOR_ERROR;
     } else if (pod.getStatus().getPhase().equalsIgnoreCase(SUCCEEDED)) {
-      return COMPLETE;
+      return WesStates.COMPLETE;
     }
-    return SYSTEM_ERROR;
+    return WesStates.SYSTEM_ERROR;
   }
 
   private DefaultKubernetesClient createKubernetesClient(KubernetesProperties properties) {

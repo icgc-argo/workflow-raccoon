@@ -20,14 +20,15 @@ package org.icgc_argo.workflow_raccoon.model.kubernetes;
 
 import java.time.OffsetDateTime;
 import lombok.Builder;
+import lombok.NonNull;
 import lombok.Value;
 import org.icgc_argo.workflow_raccoon.model.WesStates;
 
 @Builder
 @Value
 public class RunPod {
-  String runId;
-  OffsetDateTime age;
-  WesStates state;
-  String log;
+  @NonNull String runId;
+  @NonNull OffsetDateTime age;
+  @NonNull WesStates state;
+  @NonNull String log;
 }

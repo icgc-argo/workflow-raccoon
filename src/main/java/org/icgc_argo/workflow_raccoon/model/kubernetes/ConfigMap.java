@@ -20,11 +20,12 @@ package org.icgc_argo.workflow_raccoon.model.kubernetes;
 
 import java.time.OffsetDateTime;
 import lombok.Builder;
+import lombok.NonNull;
 import lombok.Value;
 
 @Builder
 @Value
 public class ConfigMap {
-  String name;
-  OffsetDateTime age;
+  @NonNull String name;
+  @NonNull OffsetDateTime age;
 }

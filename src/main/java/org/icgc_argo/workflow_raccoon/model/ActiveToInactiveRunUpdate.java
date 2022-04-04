@@ -18,17 +18,20 @@
 
 package org.icgc_argo.workflow_raccoon.model;
 
+import java.time.OffsetDateTime;
 import lombok.Builder;
 import lombok.NonNull;
 import lombok.Value;
 
 @Value
 @Builder
-public class RunStateUpdate {
+public class ActiveToInactiveRunUpdate {
   @NonNull String runId;
   @NonNull String sessionId;
   @NonNull String workflowUrl;
   @NonNull WesStates currentState;
   @NonNull WesStates newState;
+  @NonNull OffsetDateTime startTime;
+  @NonNull OffsetDateTime completeTime;
   @NonNull String logs;
 }

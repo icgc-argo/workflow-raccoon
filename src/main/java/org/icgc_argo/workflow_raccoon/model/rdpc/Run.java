@@ -18,18 +18,34 @@
 
 package org.icgc_argo.workflow_raccoon.model.rdpc;
 
+import static java.time.Instant.ofEpochMilli;
+
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
+import java.util.Optional;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import lombok.NonNull;
 import org.icgc_argo.workflow_raccoon.model.WesStates;
 
 @Data
 @NoArgsConstructor
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class Run {
-  String runId;
-  String sessionId;
-  String repository;
-  WesStates state;
-  String startTime;
+  @NonNull String runId;
+  String sessionId; // gateway could return null
+  @NonNull String repository;
+  @NonNull WesStates state;
+  Long startTime; // gateway returns milliseconds epoch time
+
+  public Optional<OffsetDateTime> getStartTime() {
+    return startTime == null
+        ? Optional.empty()
+        : Optional.of(OffsetDateTime.ofInstant(ofEpochMilli(startTime), ZoneOffset.UTC));
+  }
+
+  public String getSessionId() {
+    return sessionId == null ? "NO-SESSION-ID" : sessionId;
+  }
 }

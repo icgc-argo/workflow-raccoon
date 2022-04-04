@@ -23,6 +23,7 @@ import static java.util.stream.Collectors.toUnmodifiableList;
 
 import java.time.Duration;
 import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
 import java.util.HashMap;
 import java.util.List;
 import java.util.function.Function;
@@ -30,8 +31,8 @@ import javax.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
+import org.icgc_argo.workflow_raccoon.model.ActiveToInactiveRunUpdate;
 import org.icgc_argo.workflow_raccoon.model.MealPlan;
-import org.icgc_argo.workflow_raccoon.model.RunStateUpdate;
 import org.icgc_argo.workflow_raccoon.model.WesStates;
 import org.icgc_argo.workflow_raccoon.model.kubernetes.ConfigMap;
 import org.icgc_argo.workflow_raccoon.model.kubernetes.RunPod;
@@ -67,12 +68,11 @@ public class RaccoonService {
     val staleConfigMaps =
         toCleanup(configMaps, ConfigMap::getAge, properties.getConfigMapRotationDays());
 
-    return runsToUpdate(rdpcGatewayService.getAlLActiveRuns(), allRunPods)
-        .collectList()
+    return createActiveToInactiveRunUpdates(rdpcGatewayService.getAlLActiveRuns(), allRunPods)
         .map(
             runUpdates ->
                 MealPlan.builder()
-                    .runUpdates(runUpdates)
+                    .activeToInactiveRunUpdates(runUpdates)
                     .staleConfigMaps(staleConfigMaps)
                     .staleRunPods(staleRunPods)
                     .build());
@@ -80,22 +80,19 @@ public class RaccoonService {
 
   private Mono<Boolean> executeMealPlan(MealPlan mealPlan) {
     val updateRuns =
-        Flux.fromIterable(mealPlan.getRunUpdates())
+        Flux.fromIterable(mealPlan.getActiveToInactiveRunUpdates())
             .delayElements(Duration.ofSeconds(properties.getRelayWeblogDelaySec()))
-            .concatMap(relayWeblogService::updateRunViaWeblog)
-            .log("updateRuns");
+            .concatMap(relayWeblogService::updateRunViaWeblog);
 
     val deleteStaleRunPods =
         Flux.fromIterable(mealPlan.getStaleRunPods())
             .delayElements(Duration.ofSeconds(properties.getKubeCleanUpDelaySec()))
-            .map(kubernetesService::deletePod)
-            .log("deleteStaleRunPods");
+            .map(kubernetesService::deletePod);
 
     val deleteStaleConfigMaps =
         Flux.fromIterable(mealPlan.getStaleConfigMaps())
             .delayElements(Duration.ofSeconds(properties.getKubeCleanUpDelaySec()))
-            .map(kubernetesService::deleteConfigMap)
-            .log("deleteStaleConfigMaps");
+            .map(kubernetesService::deleteConfigMap);
 
     return Flux.concat(updateRuns, deleteStaleRunPods, deleteStaleConfigMaps)
         .count() // to make sure all elements in flux complete
@@ -103,7 +100,8 @@ public class RaccoonService {
         .onErrorReturn(false);
   }
 
-  private Flux<RunStateUpdate> runsToUpdate(Flux<Run> rdpcRuns, List<RunPod> allRunPods) {
+  private Mono<List<ActiveToInactiveRunUpdate>> createActiveToInactiveRunUpdates(
+      Flux<Run> activeRdpcRuns, List<RunPod> allRunPods) {
     val kubeRunsLookUp = new HashMap<String, RunPod>();
     allRunPods.forEach(
         kubeRun -> {
@@ -113,25 +111,35 @@ public class RaccoonService {
           kubeRunsLookUp.put(kubeRun.getRunId(), kubeRun);
         });
 
-    return rdpcRuns.flatMap(
-        rdpcRun -> {
-          val kubeRun = kubeRunsLookUp.get(rdpcRun.getRunId());
-          if (kubeRun == null || !kubeRun.getState().equals(rdpcRun.getState())) {
-            val builder =
-                RunStateUpdate.builder()
-                    .runId(rdpcRun.getRunId())
-                    .currentState(rdpcRun.getState())
-                    .sessionId(rdpcRun.getSessionId());
-            if (kubeRun != null) {
-              builder.newState(kubeRun.getState()).logs(kubeRun.getLog());
-            } else {
-              builder.newState(WesStates.SYSTEM_ERROR).logs("");
-            }
-            builder.workflowUrl(rdpcRun.getRepository());
-            return Mono.just(builder.build());
-          }
-          return Mono.empty();
-        });
+    return activeRdpcRuns
+        .flatMap(
+            rdpcRun -> {
+              val kubeRun = kubeRunsLookUp.get(rdpcRun.getRunId());
+              val builder =
+                  ActiveToInactiveRunUpdate.builder()
+                      .runId(rdpcRun.getRunId())
+                      .currentState(rdpcRun.getState())
+                      .sessionId(rdpcRun.getSessionId())
+                      .workflowUrl(rdpcRun.getRepository());
+              if (kubeRun == null) {
+                builder
+                    .newState(WesStates.SYSTEM_ERROR)
+                    .logs("")
+                    .startTime(rdpcRun.getStartTime().orElse(OffsetDateTime.now(ZoneOffset.UTC)))
+                    .completeTime(OffsetDateTime.now(ZoneOffset.UTC));
+                return Mono.just(builder.build());
+              } else if (!kubeRun.getState().equals(rdpcRun.getState())) {
+                builder
+                    .newState(kubeRun.getState())
+                    .logs(kubeRun.getLog())
+                    .startTime(rdpcRun.getStartTime().orElse(kubeRun.getAge()))
+                    .completeTime(OffsetDateTime.now(ZoneOffset.UTC));
+                return Mono.just(builder.build());
+              } else {
+                return Mono.empty();
+              }
+            })
+        .collectList();
   }
 
   private <T> List<T> toCleanup(
