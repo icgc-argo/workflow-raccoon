@@ -67,11 +67,12 @@ public class RdpcGatewayService {
             .defaultHeader(RESOURCE_ID_HEADER, OUATH_RESOURCE_ID)
             .build();
 
-    if ( properties.getFilterStartedBeforeDays() < 0) {
+    if (properties.getFilterStartedBeforeDays() < 0) {
       log.info("filterStartedBeforeDay is negative defaulting to 14 days!");
       this.filterStartedBeforeDays = 14;
     } else {
       this.filterStartedBeforeDays = properties.getFilterStartedBeforeDays();
+      log.info("Configured filterStartedBeforeDay as {} ", filterStartedBeforeDays);
     }
 
     log.info("RdpcGatewayService is ready");
@@ -106,7 +107,8 @@ public class RdpcGatewayService {
         .map(gqlRunsResponse -> Tuples.of(page, gqlRunsResponse));
   }
 
-  private Mono<GqlRunsResponse> getRunsFrom(Integer from, Integer size, WesStates state, Long startedBeforeEpoch) {
+  private Mono<GqlRunsResponse> getRunsFrom(
+      Integer from, Integer size, WesStates state, Long startedBeforeEpoch) {
     val body = createBody(from, size, state, startedBeforeEpoch);
     return webClient
         .post()
@@ -117,7 +119,8 @@ public class RdpcGatewayService {
         .bodyToMono(GqlRunsResponse.class);
   }
 
-  private Map<String, Object> createBody(Integer from, Integer size, WesStates state, Long startedBeforeEpoch) {
+  private Map<String, Object> createBody(
+      Integer from, Integer size, WesStates state, Long startedBeforeEpoch) {
     val QUERY =
         "query ($from: Int!, $size: Int!, $state:String!, $startedBeforeEpoch: Long!) {\n"
             + "  runs(filter: {state: $state}, sorts: {fieldName: startTime, order: asc}, page: {from: $from, size: $size}, dateRanges: {fieldName: startTime, toEpochMilli: $startedBeforeEpoch}) {\n"
