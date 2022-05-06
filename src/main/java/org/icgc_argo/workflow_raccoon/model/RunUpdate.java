@@ -25,7 +25,7 @@ import lombok.Value;
 
 @Value
 @Builder
-public class ActiveToInactiveRunUpdate {
+public class RunUpdate {
   @NonNull String runId;
   @NonNull String sessionId;
   @NonNull String workflowUrl;

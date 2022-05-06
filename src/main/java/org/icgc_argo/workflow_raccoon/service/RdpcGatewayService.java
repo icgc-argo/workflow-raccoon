@@ -18,14 +18,13 @@
 
 package org.icgc_argo.workflow_raccoon.service;
 
-import static java.time.Instant.now;
-import static java.time.temporal.ChronoUnit.DAYS;
 import static org.springframework.security.oauth2.core.AuthorizationGrantType.CLIENT_CREDENTIALS;
 
 import java.util.Map;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
+import org.icgc_argo.workflow_raccoon.model.RunUpdatesRequest;
 import org.icgc_argo.workflow_raccoon.model.WesStates;
 import org.icgc_argo.workflow_raccoon.model.rdpc.GqlRunsResponse;
 import org.icgc_argo.workflow_raccoon.model.rdpc.Run;
@@ -51,8 +50,6 @@ public class RdpcGatewayService {
   private static final Integer DEFAULT_SIZE = 20;
   private static final String RESOURCE_ID_HEADER = "X-Resource-ID";
   private static final String OUATH_RESOURCE_ID = "rdpcOauth";
-
-  private final Integer filterStartedBeforeDays;
   private final WebClient webClient;
 
   public RdpcGatewayService(RdpcProperties properties) {
@@ -67,49 +64,44 @@ public class RdpcGatewayService {
             .defaultHeader(RESOURCE_ID_HEADER, OUATH_RESOURCE_ID)
             .build();
 
-    if (properties.getFilterStartedBeforeDays() < 0) {
-      log.info("filterStartedBeforeDay is negative defaulting to 14 days!");
-      this.filterStartedBeforeDays = 14;
-    } else {
-      this.filterStartedBeforeDays = properties.getFilterStartedBeforeDays();
-      log.info("Configured filterStartedBeforeDay as {} ", filterStartedBeforeDays);
-    }
-
     log.info("RdpcGatewayService is ready");
   }
 
-  public Flux<Run> getAlLActiveRuns() {
-    val startedBeforeEpoch = now().minus(filterStartedBeforeDays.longValue(), DAYS).toEpochMilli();
-    return Flux.concat(
-        getAllRunsWithState(WesStates.RUNNING, startedBeforeEpoch),
-        getAllRunsWithState(WesStates.QUEUED, startedBeforeEpoch),
-        getAllRunsWithState(WesStates.CANCELING, startedBeforeEpoch),
-        getAllRunsWithState(WesStates.INITIALIZING, startedBeforeEpoch));
+  public Flux<Run> getAlLActiveRuns(RunUpdatesRequest req) {
+    Flux<Run> flux = getAllRunsWithState(WesStates.RUNNING);
+    if (req.isIncludeCancellingRuns()) {
+      flux = flux.mergeWith(getAllRunsWithState(WesStates.CANCELING));
+    }
+    if (req.isIncludeQueuedRuns()) {
+      flux = flux.mergeWith(getAllRunsWithState(WesStates.QUEUED));
+    }
+    if (req.isIncludeInitializingRuns()) {
+      flux = flux.mergeWith(getAllRunsWithState(WesStates.INITIALIZING));
+    }
+    return flux;
   }
 
-  private Flux<Run> getAllRunsWithState(@NonNull WesStates state, Long startedBeforeEpoch) {
-    return getRunsInPage(0, state, startedBeforeEpoch)
+  private Flux<Run> getAllRunsWithState(@NonNull WesStates state) {
+    return getRunsInPage(0, state)
         .expand(
             tuple2 -> {
               val currentPageNum = tuple2.getT1();
               val gqlRunsRes = tuple2.getT2();
               if (gqlRunsRes.getData().getRuns().getInfo().getHasNextFrom()) {
-                return getRunsInPage(currentPageNum + 1, state, startedBeforeEpoch);
+                return getRunsInPage(currentPageNum + 1, state);
               }
               return Mono.empty();
             })
         .flatMapIterable(tuple2 -> tuple2.getT2().getData().getRuns().getContent());
   }
 
-  private Mono<Tuple2<Integer, GqlRunsResponse>> getRunsInPage(
-      Integer page, WesStates state, Long startedBeforeEpoch) {
-    return getRunsFrom(page * DEFAULT_SIZE, DEFAULT_SIZE, state, startedBeforeEpoch)
+  private Mono<Tuple2<Integer, GqlRunsResponse>> getRunsInPage(Integer page, WesStates state) {
+    return getRunsFrom(page * DEFAULT_SIZE, DEFAULT_SIZE, state)
         .map(gqlRunsResponse -> Tuples.of(page, gqlRunsResponse));
   }
 
-  private Mono<GqlRunsResponse> getRunsFrom(
-      Integer from, Integer size, WesStates state, Long startedBeforeEpoch) {
-    val body = createBody(from, size, state, startedBeforeEpoch);
+  private Mono<GqlRunsResponse> getRunsFrom(Integer from, Integer size, WesStates state) {
+    val body = createBody(from, size, state);
     return webClient
         .post()
         .uri("")
@@ -119,11 +111,10 @@ public class RdpcGatewayService {
         .bodyToMono(GqlRunsResponse.class);
   }
 
-  private Map<String, Object> createBody(
-      Integer from, Integer size, WesStates state, Long startedBeforeEpoch) {
+  private Map<String, Object> createBody(Integer from, Integer size, WesStates state) {
     val QUERY =
-        "query ($from: Int!, $size: Int!, $state:String!, $startedBeforeEpoch: Long!) {\n"
-            + "  runs(filter: {state: $state}, sorts: {fieldName: startTime, order: asc}, page: {from: $from, size: $size}, dateRanges: {fieldName: startTime, toEpochMilli: $startedBeforeEpoch}) {\n"
+        "query ($from: Int!, $size: Int!, $state:String!) {\n"
+            + "  runs(filter: {state: $state}, sorts: {fieldName: startTime, order: asc}, page: {from: $from, size: $size}) {\n"
             + "    info {\n"
             + "      hasNextFrom\n"
             + "    }\n"
@@ -136,16 +127,7 @@ public class RdpcGatewayService {
             + "    }\n"
             + "  }\n"
             + "}\n";
-    val variables =
-        Map.of(
-            "from",
-            from,
-            "size",
-            size,
-            "state",
-            state.getValue(),
-            "startedBeforeEpoch",
-            startedBeforeEpoch);
+    val variables = Map.of("from", from, "size", size, "state", state.getValue());
 
     return Map.of("query", QUERY, "variables", variables);
   }
