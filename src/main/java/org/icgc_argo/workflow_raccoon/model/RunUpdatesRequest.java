@@ -16,18 +16,13 @@
  * ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package org.icgc_argo.workflow_raccoon.properties;
+package org.icgc_argo.workflow_raccoon.model;
 
-import lombok.Value;
-import org.springframework.boot.context.properties.ConfigurationProperties;
-import org.springframework.boot.context.properties.ConstructorBinding;
+import lombok.Data;
 
-@Value
-@ConstructorBinding
-@ConfigurationProperties("rdpc")
-public class RdpcProperties {
-  String url;
-  String clientId;
-  String clientSecret;
-  String tokenUrl;
+@Data
+public class RunUpdatesRequest {
+  private boolean includeInitializingRuns = false;
+  private boolean includeQueuedRuns = false;
+  private boolean includeCancellingRuns = false;
 }

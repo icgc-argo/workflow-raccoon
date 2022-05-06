@@ -31,8 +31,9 @@ import javax.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
-import org.icgc_argo.workflow_raccoon.model.ActiveToInactiveRunUpdate;
 import org.icgc_argo.workflow_raccoon.model.MealPlan;
+import org.icgc_argo.workflow_raccoon.model.RunUpdate;
+import org.icgc_argo.workflow_raccoon.model.RunUpdatesRequest;
 import org.icgc_argo.workflow_raccoon.model.WesStates;
 import org.icgc_argo.workflow_raccoon.model.kubernetes.ConfigMap;
 import org.icgc_argo.workflow_raccoon.model.kubernetes.RunPod;
@@ -56,11 +57,14 @@ public class RaccoonService {
     log.info("RaccoonService is ready");
   }
 
-  public Mono<Boolean> prepareAndExecuteMealPlan() {
-    return prepareMealPlan().flatMap(this::executeMealPlan).log("RaccoonService");
+  public Mono<Boolean> prepareAndExecuteMealPlan(RunUpdatesRequest req) {
+    return prepareMealPlan(req)
+        .doOnNext(mp -> log.info("Meal plan to execute: {}", mp))
+        .flatMap(this::executeMealPlan)
+        .log("RaccoonService");
   }
 
-  public Mono<MealPlan> prepareMealPlan() {
+  public Mono<MealPlan> prepareMealPlan(RunUpdatesRequest req) {
     val allRunPods = kubernetesService.getCurrentRunPods();
     val configMaps = kubernetesService.getCurrentRunConfigMaps();
 
@@ -68,11 +72,11 @@ public class RaccoonService {
     val staleConfigMaps =
         toCleanup(configMaps, ConfigMap::getAge, properties.getConfigMapRotationDays());
 
-    return createActiveToInactiveRunUpdates(rdpcGatewayService.getAlLActiveRuns(), allRunPods)
+    return createActiveToInactiveRunUpdates(rdpcGatewayService.getAlLActiveRuns(req), allRunPods)
         .map(
             runUpdates ->
                 MealPlan.builder()
-                    .activeToInactiveRunUpdates(runUpdates)
+                    .runUpdates(runUpdates)
                     .staleConfigMaps(staleConfigMaps)
                     .staleRunPods(staleRunPods)
                     .build());
@@ -80,7 +84,7 @@ public class RaccoonService {
 
   private Mono<Boolean> executeMealPlan(MealPlan mealPlan) {
     val updateRuns =
-        Flux.fromIterable(mealPlan.getActiveToInactiveRunUpdates())
+        Flux.fromIterable(mealPlan.getRunUpdates())
             .delayElements(Duration.ofSeconds(properties.getRelayWeblogDelaySec()))
             .concatMap(relayWeblogService::updateRunViaWeblog);
 
@@ -96,11 +100,11 @@ public class RaccoonService {
 
     return Flux.concat(updateRuns, deleteStaleRunPods, deleteStaleConfigMaps)
         .count() // to make sure all elements in flux complete
-        .map(count -> count == mealPlan.getTotalCount())
+        .map(count -> count == mealPlan.getOperationsCount())
         .onErrorReturn(false);
   }
 
-  private Mono<List<ActiveToInactiveRunUpdate>> createActiveToInactiveRunUpdates(
+  private Mono<List<RunUpdate>> createActiveToInactiveRunUpdates(
       Flux<Run> activeRdpcRuns, List<RunPod> allRunPods) {
     val kubeRunsLookUp = new HashMap<String, RunPod>();
     allRunPods.forEach(
@@ -116,7 +120,7 @@ public class RaccoonService {
             rdpcRun -> {
               val kubeRun = kubeRunsLookUp.get(rdpcRun.getRunId());
               val builder =
-                  ActiveToInactiveRunUpdate.builder()
+                  RunUpdate.builder()
                       .runId(rdpcRun.getRunId())
                       .currentState(rdpcRun.getState())
                       .sessionId(rdpcRun.getSessionId())

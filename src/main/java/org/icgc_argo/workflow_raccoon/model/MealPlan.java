@@ -27,12 +27,12 @@ import org.icgc_argo.workflow_raccoon.model.kubernetes.RunPod;
 @Value
 @Builder
 public class MealPlan {
-  List<ActiveToInactiveRunUpdate> activeToInactiveRunUpdates;
+  List<RunUpdate> runUpdates;
   List<ConfigMap> staleConfigMaps;
   List<RunPod> staleRunPods;
 
-  public long getTotalCount() {
-    return toLong(activeToInactiveRunUpdates.size() + staleConfigMaps.size() + staleRunPods.size());
+  public long getOperationsCount() {
+    return toLong(runUpdates.size() + staleConfigMaps.size() + staleRunPods.size());
   }
 
   private static long toLong(int a) {
