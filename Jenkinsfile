@@ -99,7 +99,7 @@ spec:
 
         stage('Release & Tag') {
             when {
-                branch "master"
+                branch "main"
             }
             steps {
                 container('docker') {
@@ -122,7 +122,7 @@ spec:
         }
         stage('deploy to rdpc-collab-qa') {
             when {
-                branch "master"
+                branch "main"
             }
             steps {
                 build(job: "/provision/update-app-version", parameters: [
