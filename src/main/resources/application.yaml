@@ -1,0 +1,29 @@
+spring:
+  application:
+    # take values from pom.xml
+    name: "@project.name@"
+    version: "@project.version@"
+    description: "@project.description@"
+
+server.port: 8090
+
+raccoon:
+  podRotationDays: -1 # pods older than this should be deleted, -1 disables it
+  configMapRotationDays: -1 # configMaps older than this should be deleted, -1 disables it
+  kubeCleanUpDelaySec: 1 # delay between cleanup requests to kubernetes api
+  relayWeblogDelaySec: 1 # delay between event updates to relay weblog
+
+k8s:
+  runsNamespace: "default" # Namespace where worklow resources will be
+  masterUrl: "https://192.168.99.100:8443"
+  trustCertificate: false
+
+rdpc:
+  url: http://localhost:8081/graphql
+  clientId: raccoon
+  clientSecret: racconsecret
+  tokenUrl: http://localhost:8083/api/oauth/token
+  filterStartedBeforeDays: 14 # filter applied to fetch runs started before x days
+
+weblog:
+  url:  http://localhost:8089
