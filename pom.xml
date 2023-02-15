@@ -10,7 +10,7 @@
     </parent>
     <groupId>org.icgc.argo</groupId>
     <artifactId>workflow-raccoon</artifactId>
-    <version>0.0.1</version>
+    <version>0.0.2</version>
     <name>Workflow Raccoon</name>
     <description>Service responsible for emitting events to workflow-relay to set stale workflows to SYSTEM_ERROR state and clean up old k8s resources.</description>
 
@@ -58,6 +58,12 @@
             <artifactId>lombok</artifactId>
             <optional>true</optional>
         </dependency>
+        <dependency>
+            <groupId>com.fasterxml.jackson.datatype</groupId>
+            <artifactId>jackson-datatype-jsr310</artifactId>
+            <version>2.14.1</version>
+        </dependency>
+
 
         <!-- Test -->
         <dependency>
