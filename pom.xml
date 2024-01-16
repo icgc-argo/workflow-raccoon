@@ -10,7 +10,7 @@
     </parent>
     <groupId>org.icgc.argo</groupId>
     <artifactId>workflow-raccoon</artifactId>
-    <version>0.0.2-SNAPSHOT</version>
+    <version>0.1.0-SNAPSHOT</version>
     <name>Workflow Raccoon</name>
     <description>Service responsible for emitting events to workflow-relay to set stale workflows to SYSTEM_ERROR state and clean up old k8s resources.</description>
 
