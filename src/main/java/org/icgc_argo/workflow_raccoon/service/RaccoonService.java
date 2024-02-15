@@ -65,8 +65,11 @@ public class RaccoonService {
   }
 
   public Mono<MealPlan> prepareMealPlan(RunUpdatesRequest req) {
-    val allRunPods = kubernetesService.getCurrentRunPods();
-    val configMaps = kubernetesService.getCurrentRunConfigMaps();
+    /*val allRunPods = kubernetesService.getCurrentRunPods();
+    val configMaps = kubernetesService.getCurrentRunConfigMaps();*/
+
+    val allRunPods = kubernetesService.getAllCurrentRunPods();
+    val configMaps = kubernetesService.getAllCurrentRunConfigMaps();
 
     val staleRunPods = toCleanup(allRunPods, RunPod::getAge, properties.getPodRotationDays());
     val staleConfigMaps =
@@ -83,6 +86,7 @@ public class RaccoonService {
   }
 
   private Mono<Boolean> executeMealPlan(MealPlan mealPlan) {
+    val clientList = kubernetesService.createKubernetesClient();
     val updateRuns =
         Flux.fromIterable(mealPlan.getRunUpdates())
             .delayElements(Duration.ofSeconds(properties.getRelayWeblogDelaySec()))
@@ -91,12 +95,12 @@ public class RaccoonService {
     val deleteStaleRunPods =
         Flux.fromIterable(mealPlan.getStaleRunPods())
             .delayElements(Duration.ofSeconds(properties.getKubeCleanUpDelaySec()))
-            .map(kubernetesService::deletePod);
+            .map(kubernetesService::deleteAllPod);
 
     val deleteStaleConfigMaps =
         Flux.fromIterable(mealPlan.getStaleConfigMaps())
             .delayElements(Duration.ofSeconds(properties.getKubeCleanUpDelaySec()))
-            .map(kubernetesService::deleteConfigMap);
+            .map(kubernetesService::deleteAllConfigMap);
 
     return Flux.concat(updateRuns, deleteStaleRunPods, deleteStaleConfigMaps)
         .count() // to make sure all elements in flux complete

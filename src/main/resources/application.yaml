@@ -5,25 +5,43 @@ spring:
     version: "@project.version@"
     description: "@project.description@"
 
-server.port: 8090
+server.port: 8093
+
+#management:
+#port: -1
 
 raccoon:
-  podRotationDays: -1 # pods older than this should be deleted, -1 disables it
-  configMapRotationDays: -1 # configMaps older than this should be deleted, -1 disables it
+  podRotationDays: 1 # pods older than this should be deleted, -1 disables it
+  configMapRotationDays: 1 # configMaps older than this should be deleted, -1 disables it
   kubeCleanUpDelaySec: 1 # delay between cleanup requests to kubernetes api
   relayWeblogDelaySec: 1 # delay between event updates to relay weblog
 
+#k8s:
+#  runsNamespace: "rdpc-wes-prod" #"default" # Namespace where worklow resources will be
+#  masterUrl: "https://kube.rdpc-prod.cumulus.genomeinformatics.org:6443/" #"https://rdpc-dev.cumulus.infra.icgc-argo.org:6443" #"https://kubernetes.default.svc.cluster.local" #"https://192.168.99.100:8443"
+#  trustCertificate: true #false
+
 k8s:
-  runsNamespace: "default" # Namespace where worklow resources will be
-  masterUrl: "https://192.168.99.100:8443"
-  trustCertificate: false
+  clientList:
+    -
+      runsNamespace: "rdpc-wes-prod" #"default" # Namespace where worklow resources will be
+      name: "1"
+      masterUrl: "https://kube.rdpc-prod.cumulus.genomeinformatics.org:6443/" #"https://rdpc-dev.cumulus.infra.icgc-argo.org:6443" #"https://kubernetes.default.svc.cluster.local" #"https://192.168.99.100:8443"
+      trustCertificate: true #false
+      token: "eyJhbGciOiJSUzI1NiIsImtpZCI6ImhaUEgyZWdqa3FYUVdTMU83aFRpNG4yVkNkUUpOTHREN0V3Tkg4UzFDYkkifQ.eyJhdWQiOlsiaHR0cHM6Ly9rdWJlcm5ldGVzLmRlZmF1bHQuc3ZjLmNsdXN0ZXIubG9jYWwiXSwiZXhwIjoxNzA4MjgxNTgwLCJpYXQiOjE3MDc5MzU5ODAsImlzcyI6Imh0dHBzOi8va3ViZXJuZXRlcy5kZWZhdWx0LnN2Yy5jbHVzdGVyLmxvY2FsIiwia3ViZXJuZXRlcy5pbyI6eyJuYW1lc3BhY2UiOiJyZHBjLXdlcy1wcm9kIiwic2VydmljZWFjY291bnQiOnsibmFtZSI6Im1hbmFnZW1lbnQiLCJ1aWQiOiJjZTcyOWYxZC0wNjAxLTRkNmMtYTkyYS1kMzI4ZjFlOTc3NzAifX0sIm5iZiI6MTcwNzkzNTk4MCwic3ViIjoic3lzdGVtOnNlcnZpY2VhY2NvdW50OnJkcGMtd2VzLXByb2Q6bWFuYWdlbWVudCJ9.auRYEs-0QRS_2YaXENEB06OIQ1dgWYmvlHut2RYR6eOtduSp4VyZ4m8Bifs9WC5Fa_bfMy_z9XoF9ESkeIAe-6iv_aExPNVWk8uuZ6R4zKrZv6nk3YuiGNUlGOh1RiXdN9hnNzDJk4KJOsCQZ3BSnRnhYpWS5V6w6Iu7UFX6ux4eFVHndM_umCNxtavuMS347_LQa1rk-Ti5mUAw8pCm8sgwOlYJBHO9CgD2T11mti25DaRBlv1L1dAyaX9CwnQuE1UaZ-R2luXtA3otY7WPzBoqfJhbCsWdxf_CKJAxg5FigQ0WBVAvFQpGVCQfyydt72eWVwkkIh2himoX43HMEA"
+    -
+      runsNamespace: "rdpc-wes-prod" #"default" # Namespace where worklow resources will be
+      name: "2"
+      masterUrl: "https://rdpcprod1-12682k8s-lrjkgqnq.hcp.canadacentral.azmk8s.io:443" #"https://rdpc-dev.cumulus.infra.icgc-argo.org:6443" #"https://kubernetes.default.svc.cluster.local" #"https://192.168.99.100:8443"
+      trustCertificate: true #false
+      token: ""
 
 rdpc:
-  url: http://localhost:8081/graphql
-  clientId: raccoon
-  clientSecret: racconsecret
-  tokenUrl: http://localhost:8083/api/oauth/token
+  url: https://api.rdpc-prod.cumulus.genomeinformatics.org/graphql #https://api.rdpc-dev.cumulus.genomeinformatics.org/graphql # ##http://localhost:8082/graphql  #UK: using workflow-api url instead since rdpc gateway url does not work and we only need workflow info not analysis info. #http://localhost:4000/graphql #
+  clientId: raccoon-rdpc-collab #wfg #raccoon
+  clientSecret: 4HmoyguPK7TpNtS3 #workflowgraph #racconsecret
+  tokenUrl: https://ego.icgc-argo.org/api/oauth/token #https://ego.argo-dev.cumulus.genomeinformatics.org/api/oauth/token #https://ego.qa.argo.cancercollaboratory.org/api/oauth/token #http://localhost:8083/api/oauth/token
   filterStartedBeforeDays: 14 # filter applied to fetch runs started before x days
 
 weblog:
-  url:  http://localhost:8089
+  url:   http://localhost:8081/ #http://relay-weblog.rdpc-collab-qa.svc.cluster.local
