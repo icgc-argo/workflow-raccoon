@@ -28,9 +28,5 @@ import java.util.List;
 @ConstructorBinding
 @ConfigurationProperties("k8s")
 public class KubernetesProperties {
-//  String runsNamespace;
-//  String masterUrl;
-//  Boolean trustCertificate;
-
   List<KubernetesClientDetails> clientList;
 }

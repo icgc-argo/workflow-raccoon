@@ -49,7 +49,6 @@ public class KubernetesService {
   private static final String WORKFLOW_CONFIGMAP_PREFIX = "nf-config-";
 
   private final KubernetesProperties properties;
-  //private final DefaultKubernetesClient client;
 
   public KubernetesService(KubernetesProperties properties) {
     this.properties = properties;
