@@ -14,9 +14,15 @@ raccoon:
   relayWeblogDelaySec: 1 # delay between event updates to relay weblog
 
 k8s:
-  runsNamespace: "default" # Namespace where worklow resources will be
-  masterUrl: "https://192.168.99.100:8443"
-  trustCertificate: false
+  clientList:
+    - runsNamespace: "namespace1"
+      name: "cluster1"
+      masterUrl: "https://192.168.99.100:8443"
+      trustCertificate: false
+    - runsNamespace: "namespace2"
+      name: "cluster2"
+      masterUrl: "https://192.168.99.100:8443"
+      trustCertificate: false
 
 rdpc:
   url: http://localhost:8081/graphql

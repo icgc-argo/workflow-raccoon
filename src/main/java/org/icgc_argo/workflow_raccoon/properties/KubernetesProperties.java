@@ -22,11 +22,11 @@ import lombok.Value;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.boot.context.properties.ConstructorBinding;
 
+import java.util.List;
+
 @Value
 @ConstructorBinding
 @ConfigurationProperties("k8s")
 public class KubernetesProperties {
-  String runsNamespace;
-  String masterUrl;
-  Boolean trustCertificate;
+  List<KubernetesClientDetails> clientList;
 }
