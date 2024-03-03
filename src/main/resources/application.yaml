@@ -19,10 +19,12 @@ k8s:
       name: "cluster1"
       masterUrl: "https://192.168.99.100:8443"
       trustCertificate: false
+      context: cumulus
     - runsNamespace: "namespace2"
       name: "cluster2"
       masterUrl: "https://192.168.99.100:8443"
       trustCertificate: false
+      context: azure
 
 rdpc:
   url: http://localhost:8081/graphql
