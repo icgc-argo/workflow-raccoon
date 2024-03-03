@@ -8,4 +8,5 @@ public class KubernetesClientDetails {
   String runsNamespace;
   String masterUrl;
   Boolean trustCertificate;
+  String context;
 }

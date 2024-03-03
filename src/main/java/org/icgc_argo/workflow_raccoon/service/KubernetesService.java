@@ -22,6 +22,7 @@ import static java.time.ZonedDateTime.parse;
 import static java.util.stream.Collectors.toUnmodifiableList;
 
 import io.fabric8.kubernetes.api.model.Pod;
+import io.fabric8.kubernetes.client.Config;
 import io.fabric8.kubernetes.client.ConfigBuilder;
 import io.fabric8.kubernetes.client.DefaultKubernetesClient;
 import io.fabric8.kubernetes.client.KubernetesClientException;
@@ -224,12 +225,16 @@ public class KubernetesService {
   private DefaultKubernetesClient createKubernetesClient(KubernetesClientDetails clientDetails) {
     log.info("Init k8s client");
     try {
-      val config =
+      /*val config =
           new ConfigBuilder()
               .withMasterUrl(clientDetails.getMasterUrl())
               .withNamespace(clientDetails.getRunsNamespace())
               .withTrustCerts(clientDetails.getTrustCertificate())
-              .build();
+              .build();*/
+      val config = Config.autoConfigure(clientDetails.getContext());
+      config.setNamespace(clientDetails.getRunsNamespace());
+      config.setTrustCerts(clientDetails.getTrustCertificate());
+
       return new DefaultKubernetesClient(config);
     } catch (KubernetesClientException e) {
       log.info("Failed to init k8s client");
@@ -245,12 +250,15 @@ public class KubernetesService {
       List<KubernetesClientDetails> clientDetails = properties.getClientList();
 
       for (val client : clientDetails) {
-        val config =
+        /*val config =
             new ConfigBuilder()
                 .withMasterUrl(client.getMasterUrl())
                 .withNamespace(client.getRunsNamespace())
                 .withTrustCerts(client.getTrustCertificate())
-                .build();
+                .build();*/
+        val config = Config.autoConfigure(client.getContext());
+        config.setNamespace(client.getRunsNamespace());
+        config.setTrustCerts(client.getTrustCertificate());
         k8sClients.add(new DefaultKubernetesClient(config));
 
       }
