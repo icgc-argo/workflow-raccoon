@@ -190,6 +190,8 @@ public class KubernetesService {
 
     for (val client : clients) {
       log.info("kube client: "+client.getConfiguration().getMasterUrl());
+      log.info("kube client: "+client.getConfiguration().getClientCertData());
+      log.info("kube client: "+client.getConfiguration().getOauthToken());
       currentPods.addAll(client.pods().list().getItems().stream()
           .filter(
               pod ->
