@@ -189,6 +189,7 @@ public class KubernetesService {
     List<RunPod> currentPods = new ArrayList<>();
 
     for (val client : clients) {
+      log.info("kube client: "+client.getConfiguration().getMasterUrl());
       currentPods.addAll(client.pods().list().getItems().stream()
           .filter(
               pod ->
